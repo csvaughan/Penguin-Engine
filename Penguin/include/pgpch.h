@@ -1,0 +1,29 @@
+#pragma once
+
+#include <algorithm>
+#include <cassert>
+#include <chrono>
+#include <cmath>
+#include <fstream>
+#include <filesystem>
+#include <functional>
+#include <format>
+#include <iostream>
+#include <stdio.h>
+#include <variant>
+#include <bitset>
+#include <memory>
+#include <sstream>
+#include <variant>
+#include <concepts>
+#include <print>
+
+//data structures
+#include <array>
+#include <deque>
+#include <queue>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <unordered_set>

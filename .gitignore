@@ -1,0 +1,64 @@
+# ==================================
+# Build & Binary Directories
+# ==================================
+build/
+bin/
+out/
+obj/
+
+# Common compiled extensions
+*.o
+*.a
+*.so
+*.lib
+*.dll
+*.exe
+*.out
+
+# ==================================
+# CMake Artifacts (The "Junk" files)
+# ==================================
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+Makefile
+compile_commands.json
+install_manifest.txt
+_deps/
+
+# ==================================
+# IDE & Tooling
+# ==================================
+# VS Code
+.vscode/
+
+# Language Server (clangd)
+.clangd/
+.cache/
+
+# ==================================
+# AI & LLM Local Configs
+# ==================================
+# Prevents heavy models or local server configs from being pushed
+.ollama/
+models/
+*.gguf
+.env
+open-webui/
+
+# ==================================
+# OS & System
+# ==================================
+.DS_Store
+Thumbs.db
+*~
+*.swp
+
+# ==================================
+# Engine Specific (pgn)
+# ==================================
+logs/
+*.log
+temp/
+captures/
