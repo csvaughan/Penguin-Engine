@@ -1,18 +1,20 @@
 #include "pgpch.h"
 #include "GUI/UICanvas.h"
+#include "GUI/GUIElement.h"
 #include "Events/InputEvents.h"
 #include "Events/WindowEvents.h"
 #include <algorithm>
 
 namespace pgn::GUI {
 
-    UICanvas::UICanvas() 
-        : m_size(m_context.GetWindow().GetWindowSize()), 
+    UICanvas::UICanvas(Vector2 size) 
+        : m_size(size), 
           m_referenceRes(Vector2{1920.0f, 1080.0f}){}
 
 
     void pgn::GUI::UICanvas::RemoveElement(UIElementID id)
     {
+        m_idMap.erase(id);
         std::erase_if(m_rootElements, [id](const Ref<GUIElement>& child) { return child->GetID() == id; });
         m_needsSort = true;
     }
@@ -65,7 +67,8 @@ namespace pgn::GUI {
     void UICanvas::OnRender(float alpha) 
     {
         if (!m_isEnabled) return;
-        for (auto& root : m_rootElements) root->OnRender(alpha);
+        for (auto& root : m_rootElements) 
+            root->Render(alpha);
     }
 
     bool UICanvas::OnEvent(Event& e) 
@@ -80,18 +83,18 @@ namespace pgn::GUI {
         });
 
         // Focus logic
-        dispatcher.Dispatch<MouseButtonPressedEvent>([this](MouseButtonPressedEvent& ev) {
-            for (auto it = m_rootElements.rbegin(); it != m_rootElements.rend(); ++it) 
-            {
-                if ((*it)->GetGlobalBounds().contains(ev.GetPosition())) 
-                {
-                    BringToFront((*it)->GetID());
-                    break; 
-                }
-            }
-            return false; 
-        });
-
+        //dispatcher.Dispatch<MouseButtonPressedEvent>([this](MouseButtonPressedEvent& ev) {
+        //    for (auto it = m_rootElements.rbegin(); it != m_rootElements.rend(); ++it) 
+        //    {
+        //        if ((*it)->GetGlobalBounds().contains(ev.GetPosition())) 
+        //        {
+        //            BringToFront((*it)->GetID());
+        //            break; 
+        //        }
+        //    }
+        //    return false; 
+        //});
+        
         bool handled = false;
         for (auto it = m_rootElements.rbegin(); it != m_rootElements.rend(); ++it) 
         {

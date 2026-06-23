@@ -1,6 +1,5 @@
 #pragma once
 
-
 //----Core----//
 #include "Core/Application.h"
 #include "Core/LayerStack.h"
@@ -56,5 +55,7 @@
 #include "GUI/Label.h"
 #include "GUI/Panel.h"
 #include "GUI/GUIElement.h"
-#include "GUI/ImageBox.h"
-
+#include "GUI/UIImage.h"
+#include "GUI/Slider.h"
+#include "GUI/ScrollGroup.h"
+#include "GUI/MenuBox.h"

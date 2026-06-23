@@ -8,7 +8,7 @@ namespace pgn::GUI {
     class LayoutGroup : public GUIElement 
     {
     public:
-        LayoutGroup(UICanvas* canvas, Vector2 pos, Vector2 size, LayoutDirection direction, GUIElement* parent = nullptr, const std::string& name = "LayoutGroup");
+        LayoutGroup(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, LayoutDirection direction, const std::string& name = "LayoutGroup", GUIElement* parent = nullptr);
         virtual ~LayoutGroup() = default;
 
         void SetDirection(LayoutDirection direction);

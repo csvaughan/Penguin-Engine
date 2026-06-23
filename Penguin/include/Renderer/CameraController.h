@@ -7,6 +7,7 @@ namespace pgn {
     {
     public:
         CameraController(float width, float height);
+        CameraController(Vector2 size);
 
         void onUpdate(float dt);
         void onResize(float width, float height);
@@ -40,14 +41,14 @@ namespace pgn {
 
     private:
         Camera m_camera;
+
+        // Target values (what we want to reach)
+        Vector2 m_targetPosition{ 0.0f, 0.0f };
+        float m_targetZoom = 1.0f;
         
         // Smoothing variables
         Vector2 m_actualPosition{ 0.0f, 0.0f };
         float m_actualZoom = 1.0f;
-        
-        // Target values (what we want to reach)
-        Vector2 m_targetPosition{ 0.0f, 0.0f };
-        float m_targetZoom = 1.0f;
 
         // Configuration
         const Vector2* m_target = nullptr;

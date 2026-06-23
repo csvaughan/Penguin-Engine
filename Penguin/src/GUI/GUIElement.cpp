@@ -4,12 +4,11 @@
 
 namespace pgn::GUI {
 
-    std::atomic<UIElementID> GUIElement::s_idCounter{1};
-
-    GUIElement::GUIElement(UICanvas* canvas, Vector2 pos, Vector2 size, const std::string& name, GUIElement* parent)
-        : m_canvas(canvas), m_parent(parent), m_id(s_idCounter++), m_bounds({pos, size}), m_name(name)
+    GUIElement::GUIElement(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, const std::string& name, GUIElement* parent)
+        : m_canvas(canvas), m_parent(parent), m_id(id), m_bounds({pos, size}), m_name(name)
     {
         m_transform.position = pos;
+        m_transform.scale = { 1.0f, 1.0f };
     }
 
     GUIElement::~GUIElement() = default;
@@ -19,8 +18,6 @@ namespace pgn::GUI {
         m_dirty = true;
         for (auto& child : m_children) child->InvalidateTransform();
     }
-
-    AppContext &GUIElement::GetContext() { return m_canvas->m_context; }
 
     void GUIElement::RemoveChild(UIElementID id)
     {

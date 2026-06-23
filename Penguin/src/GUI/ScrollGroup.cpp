@@ -5,8 +5,8 @@
 
 namespace pgn::GUI {
 
-    ScrollGroup::ScrollGroup(UICanvas* canvas, Vector2 pos, Vector2 size, GUIElement* parent, const std::string& name)
-        : GUIElement(canvas, pos, size, name, parent) {}
+    ScrollGroup::ScrollGroup(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, const std::string& name, GUIElement* parent)
+        : GUIElement(canvas, id ,pos, size, name, parent) {}
 
     void ScrollGroup::OnRender(float alpha) 
     {
@@ -31,34 +31,40 @@ namespace pgn::GUI {
         Renderer::PopScissor(m_zIndex);
     }
 
+    
+
     bool ScrollGroup::OnEvent(Event& e)
     {
         if (!m_visible || !m_enabled) return false;
 
         EventDispatcher dispatcher(e);
 
-        // 1. Handle the Mouse Wheel for scrolling
+        // 1. Handle the Mouse Wheel for scrolling (only if hovering over the scroll container)
         dispatcher.Dispatch<MouseScrolledEvent>([&](MouseScrolledEvent& ev) {
             if (Contains(ev.GetPosition()))
             {
-                // Update the Y offset (multiply by a speed factor, e.g., 20.0f)
                 m_scrollOffset.y -= ev.GetYOffset() * 20.0f;
-                // Optional: Clamp the scroll so you don't scroll into infinity
-                // m_scrollOffset.y = Math::Clamp(m_scrollOffset.y, 0.0f, m_maxScrollHeight);
-                
-                return true; // Mark as handled so the camera doesn't zoom too
+                ClampScroll();
+                return true; // Block event from game camera zoom
             }
             return false;
         });
 
-        // 2. Handle Mouse Movement (Hover states, etc.)
+        // 2. Check if mouse movement is outside our window to protect hidden children
+        bool outsideScrollWindow = false;
         dispatcher.Dispatch<MouseMovedEvent>([&](MouseMovedEvent& ev) {
-            // If the mouse is outside our visible window then stop the event from reaching children
-            return (!Contains(ev.GetPosition())) ? true : false;
+            if (!Contains(ev.GetPosition())) 
+            {
+                outsideScrollWindow = true;
+            }
+            return false; // ALWAYS return false here so e.Handled remains clean for other root components
         });
 
-        // 3. Important: Call the base class!
-        if (GUIElement::OnEvent(e)) return true;
+        // 3. Call the base class ONLY if the event shouldn't be blocked from children
+        if (!outsideScrollWindow) 
+        {
+            if (GUIElement::OnEvent(e)) return true;
+        }
 
         return false;
     }
@@ -68,7 +74,7 @@ namespace pgn::GUI {
         // Calculate total content height
         float maxH = 0.0f;
         for(auto& child : m_children) {
-            float bottom = child->GetScreenPos().y + child->GetLocalSize().y;
+            float bottom = child->GetTransform().position.y + child->GetLocalSize().y;
             if (bottom > maxH) maxH = bottom;
         }
 

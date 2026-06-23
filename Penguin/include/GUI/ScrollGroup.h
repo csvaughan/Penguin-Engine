@@ -6,7 +6,7 @@ namespace pgn::GUI {
     class ScrollGroup : public GUIElement 
     {
     public:
-        ScrollGroup(UICanvas* canvas, Vector2 pos, Vector2 size, GUIElement* parent = nullptr, const std::string& name = "ScrollGroup");
+        ScrollGroup(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, const std::string& name = "ScrollGroup", GUIElement* parent = nullptr);
 
         void SetScrollOffset(Vector2 offset) { m_scrollOffset = offset; }
         Vector2 GetScrollOffset() const { return m_scrollOffset; }

@@ -4,7 +4,6 @@
 #include "Assets/Audio.h"
 #include "Math/MathUtils.h"
 #include <SDL3/SDL_render.h>
-#include <SDL3_ttf/SDL_ttf.h>
 
 namespace pgn {
 
@@ -38,7 +37,7 @@ namespace pgn {
     void pgn::AssetManager::loadDefaults()
     {
         loadTexture("debug_texture", ENGINE_RESOURCES_PATH + std::string("textures/error_texture.png"));
-        loadFont("default_font", ENGINE_RESOURCES_PATH + std::string("fonts/PixelatedEleganceRegular-ovyAA.ttf"), 20);
+        loadFont("default_font", ENGINE_RESOURCES_PATH + std::string("fonts/PixelatedEleganceRegular-ovyAA.ttf"), 25);
     }
 
     void AssetManager::clearAllAssets()
@@ -54,12 +53,6 @@ namespace pgn {
     {
         m_renderer = renderer; 
         m_resourcePath = resourcPath;
-
-        if (!TTF_WasInit()) 
-        {
-            if (!TTF_Init()) 
-                { PGN_CORE_ERROR("Failed to initialize SDL_ttf: {}", SDL_GetError()); return; }
-        }
            
         PGN_ASSERT(!m_resourcePath.empty(),"AssetManager resource path must be set before loading assets.");
 
@@ -83,11 +76,6 @@ namespace pgn {
         m_textures.clear();
         m_fonts.clear();
         m_audio.clear();
-
-        if (TTF_WasInit())
-        {
-            TTF_Quit();
-        }
         
         m_renderer = nullptr;
         PGN_CORE_INFO("AssetManager Shutdown Successfully...");
@@ -152,8 +140,6 @@ namespace pgn {
             if (!std::filesystem::exists(path)) throw std::runtime_error("File not found");
 
             auto res = CreateRef<Font>(m_renderer, path.string(), ptSize);
-            
-            if (!res->isValid()) throw std::runtime_error("TTF Generation Failed");
 
             m_fonts[id] = res;
             m_fontCache[cacheKey] = res;

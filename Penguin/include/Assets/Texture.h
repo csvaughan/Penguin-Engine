@@ -16,6 +16,8 @@ namespace pgn
             if (!m_handle) {
                 throw std::runtime_error("Texture Load Error (" + filepath.string() + "): " + SDL_GetError());
             }
+
+            SDL_SetTextureBlendMode(m_handle, SDL_BLENDMODE_BLEND);
             
             updateDimensions();
         }
@@ -28,6 +30,8 @@ namespace pgn
             if (!m_handle) {
                 throw std::runtime_error("Texture Creation Error: " + std::string(SDL_GetError()));
             }
+
+            SDL_SetTextureBlendMode(m_handle, SDL_BLENDMODE_BLEND);
             
             updateDimensions();
         }

@@ -15,6 +15,8 @@ public:
         App().LoadSound("test","audio/lazer-gun.mp3");
         App().LoadTexture("coin", "textures/coin/coin_heads.png");
         App().LoadTexture("coin_flip", "textures/coin/coinflip.png");
+        App().LoadTexture("button", "textures/GUI/png/Button/Rect/Default.png");
+        //App().LoadTexture("button", "textures/GUI/buttons/Rect/PlayText/Hover.png");
         //App().LoadFont("test","fonts/PixelatedEleganceRegular-ovyAA.ttf", 30);
 
         BindEvent<pgn::KeyPressedEvent>(this, &GameState::SwitchLayer);

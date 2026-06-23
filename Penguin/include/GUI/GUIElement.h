@@ -4,11 +4,22 @@
 #include "Core/Timestep.h"
 #include "Core/AppContext.h"
 #include "Memory/Ref.h"
+#include "UICanvas.h"
 
 namespace pgn::GUI {
 
-    class UICanvas;
-    using UIElementID = size_t;
+    enum class UILayoutDirection { Vertical, Horizontal };
+
+    class OrientatableUI
+    {
+    public:
+        UILayoutDirection GetDirection() { return m_orientation; }
+    private:
+        UILayoutDirection m_orientation;
+    };
+
+    //Used for some direction dependant elements
+    
 
     enum class UIState  { Normal, Hovered, Pressed, Disabled };
     enum class Anchor   { TopLeft, TopCenter, TopRight, CenterLeft, Center, CenterRight, BottomLeft, BottomCenter, BottomRight };
@@ -19,17 +30,17 @@ namespace pgn::GUI {
         friend class UICanvas; 
 
     public:
-        GUIElement(UICanvas* canvas, Vector2 pos, Vector2 size, const std::string& name, GUIElement* parent = nullptr);
+        GUIElement(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, const std::string& name = "GUIElement", GUIElement* parent = nullptr);
         virtual ~GUIElement();
 
         template<typename TElement, typename... Args>
         requires(std::is_base_of_v<GUIElement, TElement>)
         TElement* AddChild(Args&&... args) 
         {
-            auto e = CreateRef<TElement>(m_canvas, std::forward<Args>(args)..., this);
+            auto e = m_canvas->CreateElement<TElement>(std::forward<Args>(args)..., this); 
             m_children.push_back(e);
             m_needsSort = true;
-            return e.get(); 
+            return e;
         }
 
         void RemoveChild(UIElementID id);
@@ -37,16 +48,18 @@ namespace pgn::GUI {
         void Destroy() { m_isDead = true; }
 
         // --- Transform & Bounds ---
-        Vector2 GetScreenPos() const; 
+        Vector2 GetScreenPos() const;
+        Transform2D GetTransform() { return m_transform; } 
         FloatRect GetGlobalBounds() const;
         Vector2 GetLocalSize() const { return { m_bounds.w, m_bounds.h };} 
         virtual Vector2 GetInternalOffset() const { return { 0.0f, 0.0f }; };
-        
+
+        void SetName(const std::string& n) { m_name = n; }
         void SetPosition(Vector2 pos) { m_transform.position = pos; InvalidateTransform(); }
         void SetSize(Vector2 size) { m_bounds.w = size.x; m_bounds.h = size.y; InvalidateTransform(); }
         void SetAnchor(Anchor a) { m_anchor = a; InvalidateTransform(); }
         void SetPivot(Pivot p) { m_pivot = p; InvalidateTransform(); }
-        void SetZIndex(int z);
+        virtual void SetZIndex(int z);
 
         void SetVisible(bool visible) 
         { 
@@ -63,8 +76,11 @@ namespace pgn::GUI {
                 c->SetEnabled(enabled);
         }
 
+        std::string const GetName() {return m_name; }
         UIElementID GetID() const { return m_id; }
-        int GetZIndex() const { return m_zIndex; }
+        Pivot GetPivot() { return m_pivot; }
+        Anchor GetAnchor() const { return m_anchor; }
+        virtual int GetZIndex() const { return m_zIndex; }
         bool IsVisible() const { return m_visible; }
         bool IsEnabled() const { return m_enabled; }
 
@@ -83,7 +99,6 @@ namespace pgn::GUI {
         bool Contains(Vector2 point) {return GetGlobalBounds().contains(point); }
         void SortChildren();
         void InvalidateTransform();
-        AppContext& GetContext();
 
         virtual Vector2 ScreenToLocal(Vector2 screenPoint) const;
 
@@ -94,7 +109,6 @@ namespace pgn::GUI {
         }
 
     protected:
-        static std::atomic<UIElementID> s_idCounter;
         UIElementID m_id;
         UICanvas* m_canvas;
         GUIElement* m_parent;

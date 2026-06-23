@@ -12,11 +12,12 @@ struct MoveableShape
 class GameLayer : public pgn::Layer
 {
     public:
-        GameLayer(const std::string name) : pgn::Layer(name), m_camera(App().GetWindow().GetWindowWidth(),App().GetWindow().GetWindowHeight()), m_areaSystem(m_camera) {}
+        GameLayer(const std::string name) : pgn::Layer(name), m_camera(App().GetWindow().GetWindowSize()), m_areaSystem(m_camera) {}
         ~GameLayer(){}
 
         void OnEnter() override 
         {
+            //m_areaSystem.LoadLevelMap();
             text.setFont(App().GetFont("default_font"));
             text.setString("Hello World");
             text.setPosition({500,200});
@@ -69,6 +70,8 @@ class GameLayer : public pgn::Layer
 
         void OnUpdate(pgn::Timestep ts) override
         {
+            m_areaSystem.OnUpdate(ts);
+
             float winWidth  = App().GetWindow().GetWindowWidth();
             float winHeight = App().GetWindow().GetWindowHeight();
 
@@ -112,7 +115,7 @@ class GameLayer : public pgn::Layer
             if (textsize.isFinished())
                 textsize = (textsize.getValue()*-1);
             
-            text.setScale({textsize, textsize});
+            //text.setScale({textsize, textsize});
 
             line.setRotation(line.getRotation() - 50 * ts.GetSeconds());
             
@@ -150,6 +153,7 @@ class GameLayer : public pgn::Layer
 
         void OnRender(float alpha) override
         {
+            m_areaSystem.OnRender(alpha);
             pgn::Renderer::BeginScene(m_camera.getCamera());
             pgn::Renderer::Submit(rect);
             pgn::Renderer::Submit(rect2);

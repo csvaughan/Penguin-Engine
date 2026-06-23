@@ -9,18 +9,25 @@ class GameUILayer : public pgn::Layer
 
         void OnEnter() override 
         {
-            pgn::Vector2 ss = App().GetWindow().GetWindowSize();
-            auto canvas = m_uiManager.CreateCanvas();
+            auto canvas = m_uiManager.CreateCanvas(App().GetWindow().GetWindowSize());
 
-            auto img = canvas->CreateElement<pgn::GUI::ImageBox>(pgn::Vector2{-100, 300}, pgn::Vector2{96, 80});
-            img->SetImage(App().GetTexture("coin"));
+            auto btn = canvas->CreateElement<pgn::GUI::Button>(pgn::Vector2{0, 0}, pgn::Vector2{280, 80});
+            btn->SetTexture(App().GetTexture("button"));
+            btn->SetText("Start Game", App().GetFont("default_font"));
+            btn->SetCallback([this, btn]() { FlipCoin(btn); });
+            
+            auto volumeSlider = canvas->CreateElement<pgn::GUI::Slider>(pgn::Vector2{150, 300}, pgn::Vector2{20, 300}, pgn::GUI::UILayoutDirection::Vertical,"VolSlider");
 
-            auto anim = canvas->CreateElement<pgn::GUI::AnimatedImageBox>(pgn::Vector2{100, 300}, pgn::Vector2{300, 50});
-            anim->SetAnimation(pgn::Animation::CreateFromSheet(App().GetTexture("coin_flip"), 96, 144, 0.2f, pgn::LoopMode::Single));
+            // 2. Setup colors and bounding rules
+            volumeSlider->SetRange(0.0f, 100.0f);
+            volumeSlider->SetFillColor(pgn::Color::Red);
+            volumeSlider->SetHandleColor(pgn::Color::Grey);
+            volumeSlider->SetStepSize(10);
+            //volumeSlider->SetValue(75.0f);
 
-            auto btn = canvas->CreateElement<pgn::GUI::Button>(pgn::Vector2{0, 0}, pgn::Vector2{300, 70});
-            btn->SetBaseColor(pgn::Color::Grey);
-            btn->SetCallback([this, img]() { FlipCoin(img); });
+            // 3. Connect a dynamic structural execution block
+            volumeSlider->SetCallback([](float value) { std::println("Volume adjusted to: {}", value); });
+
         }
 
         void OnEvent(pgn::Event& e) { m_uiManager.OnEvent(e); }
@@ -32,8 +39,9 @@ class GameUILayer : public pgn::Layer
 
         void OnRender(float alpha){ m_uiManager.OnRender(alpha); }
 
-        void FlipCoin(pgn::GUI::ImageBox* img)
+        void FlipCoin(pgn::GUI::Button* btn)
         {
+            std::println("Hello from {}", btn->GetName());
         }
 
     private:

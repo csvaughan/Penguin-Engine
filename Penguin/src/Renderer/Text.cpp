@@ -1,7 +1,5 @@
 #include "Renderer/Text.h"
 #include "Assets/Font.h"
-#include <glm/vec2.hpp>
-
 
 namespace pgn
 {
@@ -50,7 +48,7 @@ namespace pgn
         auto font = m_font.lock();
         if (!font || m_content.empty()) return;
 
-        glm::vec2 texSize = font->getAtlasSize();
+        Vector2 texSize = font->getAtlasSize();
         float cursorX = 0.0f;
         
         // Use the Ascender so that the top of the line is at y=0

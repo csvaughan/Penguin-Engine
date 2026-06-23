@@ -2,19 +2,19 @@
 #include <glm/vec2.hpp>
 #include "Memory/Ref.h"
 #include "Math/Rect.h"
-#include "pgpch.h"
+#include "Math/Vector.h"
 
 struct SDL_Texture;
 struct SDL_Renderer;
 struct TTF_Font;
 
-namespace pgn {
-
+namespace pgn
+{
     struct Glyph {
-        FloatRect uvRect;    // Pixel coordinates in the atlas
-        glm::vec2 size;      // Visual size of the glyph pixels
-        float advance;       // Horizontal distance to next character
-        glm::vec2 bearing;   // Offset from baseline (x: left, y: top)
+        FloatRect uvRect;
+        Vector2 size;
+        float advance;
+        Vector2 bearing;
     };
 
     class Font : public RefCounted
@@ -23,19 +23,20 @@ namespace pgn {
         Font(SDL_Renderer* renderer, const std::string& path, float ptsize);
         ~Font();
 
-        const Glyph& getGlyph(char c) const;
+        float getLineHeight() const { return m_lineHeight; }
+        float getAscender() const   { return m_ascender; }
         SDL_Texture* getAtlasTexture() const { return m_atlasTexture; }
-        const glm::vec2 getAtlasSize() const { return m_atlasSize; }
-        bool isValid() const                 { return m_font && m_atlasTexture; }
-        float getLineHeight() const;
-        float getAscender() const;
+        Vector2 getAtlasSize() const { return m_atlasSize; }
+        const Glyph& getGlyph(char c) const;
 
     private:
-        bool generateAtlas(SDL_Renderer* renderer);
+        bool generateAtlas(SDL_Renderer* renderer, const std::string& path, float ptsize);
 
-        TTF_Font* m_font = nullptr;
         SDL_Texture* m_atlasTexture = nullptr;
-        glm::vec2 m_atlasSize;
-        std::map<char, Glyph> m_glyphs;
+        Vector2 m_atlasSize = { 0.f, 0.f };
+        std::unordered_map<char, Glyph> m_glyphs;
+        
+        float m_lineHeight = 0.0f;
+        float m_ascender = 0.0f;
     };
 }

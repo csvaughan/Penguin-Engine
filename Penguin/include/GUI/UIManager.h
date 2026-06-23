@@ -9,9 +9,9 @@ namespace pgn::GUI
     public:
         UIManager(){}
 
-        UICanvas* CreateCanvas()
+        UICanvas* CreateCanvas(Vector2 size)
         {
-            auto c = CreateScope<UICanvas>();
+            auto c = CreateScope<UICanvas>(size);
             UICanvas* ptr = c.get(); 
             m_canvases.emplace_back(std::move(c));
             return ptr; 

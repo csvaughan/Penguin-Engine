@@ -17,6 +17,7 @@
 #include <variant>
 #include <concepts>
 #include <print>
+#include <cstring>
 
 //data structures
 #include <array>

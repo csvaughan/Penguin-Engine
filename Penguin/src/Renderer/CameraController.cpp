@@ -4,17 +4,19 @@
 
 namespace pgn {
 
+    CameraController::CameraController(Vector2 size) 
+    : CameraController(size.x, size.y) 
+    {}
+
+    // Do all the heavy lifting here
     CameraController::CameraController(float width, float height)
-        : m_camera(width, height), m_viewportWidth(width), m_viewportHeight(height)
+        : m_camera(width, height), 
+        m_viewportWidth(width), 
+        m_viewportHeight(height), 
+        m_targetPosition(Vector2(width / 2.0f, height / 2.0f)),
+        m_actualPosition(Vector2(width / 2.0f, height / 2.0f))
     {
-            // Set target to center of screen (or wherever you want world start to be)
-            m_targetPosition = Vector2(width / 2.0f, height / 2.0f);
-    
-            // SNAP the actual position to target so we don't drift on startup
-            m_actualPosition = m_targetPosition; 
-    
-            // Sync the internal camera immediately
-            m_camera.setPosition(m_actualPosition);
+        m_camera.setPosition(m_actualPosition);
     }
 
     void CameraController::onUpdate(float dt)

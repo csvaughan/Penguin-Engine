@@ -1,86 +1,125 @@
 #include "Assets/Font.h"
-#include <SDL3_ttf/SDL_ttf.h>
-#define STB_RECT_PACK_IMPLEMENTATION
-#include <stb_rect_pack.h>
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
+#include <SDL3/SDL.h>
 
 namespace pgn
 {
-
-    Font::Font(SDL_Renderer *renderer, const std::string &path, float ptsize)
+    Font::Font(SDL_Renderer* renderer, const std::string& path, float ptsize)
     {
-        m_font = TTF_OpenFont(path.c_str(), ptsize);
-        if (!m_font) return;
-
-        TTF_SetFontHinting(m_font, TTF_HINTING_LIGHT);
-        generateAtlas(renderer);
+        if (generateAtlas(renderer, path, ptsize)) 
+        {
+            // Atlas successfully generated
+        }
     }
 
     Font::~Font()
     {
-        if (m_atlasTexture) SDL_DestroyTexture(m_atlasTexture);
-        if (m_font) TTF_CloseFont(m_font);
+        if (m_atlasTexture) 
+        {
+            SDL_DestroyTexture(m_atlasTexture);
+        }
     }
 
-    float Font::getLineHeight() const { return (float)TTF_GetFontHeight(m_font); }
-    float Font::getAscender() const   { return (float)TTF_GetFontAscent(m_font); }
-
-    const Glyph &Font::getGlyph(char c) const
+    const Glyph& Font::getGlyph(char c) const
     {
         auto it = m_glyphs.find(c);
         return (it != m_glyphs.end()) ? it->second : m_glyphs.at('?');
     }
 
-    bool Font::generateAtlas(SDL_Renderer *renderer)
+    bool Font::generateAtlas(SDL_Renderer* renderer, const std::string& path, float ptsize)
     {
-        const char* charset = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-        size_t numGlyphs = strlen(charset);
+        // 1. Read binary font data into memory buffer
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open()) return false;
 
-        std::vector<SDL_Surface*> surfaces(numGlyphs);
-        std::vector<stbrp_rect> rects(numGlyphs);
-        SDL_Color white = { 255, 255, 255, 255 };
+        std::streamsize size = file.tellg();
+        file.seekg(0, std::ios::beg);
 
-        for (size_t i = 0; i < numGlyphs; i++) 
-        {
-            surfaces[i] = TTF_RenderGlyph_Blended(m_font, charset[i], white);
-            if (surfaces[i]) 
-            {
-                rects[i].id = (int)i; // +1 padding prevents texture bleeding (neighboring pixels showing up)
-                rects[i].w = (stbrp_coord)(surfaces[i]->w + 1);
-                rects[i].h = (stbrp_coord)(surfaces[i]->h + 1);
-            }
-        }
+        std::vector<unsigned char> fontBuffer(size);
+        if (!file.read(reinterpret_cast<char*>(fontBuffer.data()), size)) return false;
 
+        // 2. Initialize stb_truetype and extract basic metrics
+        stbtt_fontinfo info;
+        if (!stbtt_InitFont(&info, fontBuffer.data(), 0)) return false;
+
+        float scale = stbtt_ScaleForPixelHeight(&info, ptsize);
+        int ascent, descent, lineGap;
+        stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
+
+        // Round metrics to ensure clean integer boundaries on screen
+        m_ascender = std::round(ascent * scale);
+        m_lineHeight = std::round((ascent - descent + lineGap) * scale);
+
+        // 3. Set up the Atlas pixel packer
         int atlasSize = 512;
-        m_atlasSize = {atlasSize, atlasSize};
-        stbrp_context context;
-        std::vector<stbrp_node> nodes(atlasSize);
-        stbrp_init_target(&context, atlasSize, atlasSize, nodes.data(), (int)nodes.size());
-        stbrp_pack_rects(&context, rects.data(), (int)numGlyphs);
+        m_atlasSize = { (float)atlasSize, (float)atlasSize };
+        std::vector<unsigned char> alphaPixels(atlasSize * atlasSize, 0);
 
-        SDL_Surface* atlasSurf = SDL_CreateSurface(atlasSize, atlasSize, SDL_PIXELFORMAT_RGBA32);
-        SDL_FillSurfaceRect(atlasSurf, nullptr, 0x00000000);
+        stbtt_pack_context pc;
+        // 1 pixel of padding between characters to completely prevent bleeding
+        if (!stbtt_PackBegin(&pc, alphaPixels.data(), atlasSize, atlasSize, 0, 1, nullptr)) return false;
 
-        for (size_t i = 0; i < numGlyphs; i++) 
+        // Optional: Set to 2, 2 or higher for subpixel anti-aliasing oversampling
+        stbtt_PackSetOversampling(&pc, 1, 1); 
+
+        // We will pack standard printable ASCII characters (32 [space] to 126 ['~'])
+        const int firstChar = 32;
+        const int numChars = 95;
+        std::vector<stbtt_packedchar> packedChars(numChars);
+
+        stbtt_pack_range range{};
+        range.font_size = ptsize;
+        range.first_unicode_codepoint_in_range = firstChar;
+        range.num_chars = numChars;
+        range.chardata_for_range = packedChars.data();
+
+        if (!stbtt_PackFontRanges(&pc, fontBuffer.data(), 0, &range, 1))
         {
-            if (rects[i].was_packed && surfaces[i]) 
-            {
-                SDL_Rect dst = { rects[i].x, rects[i].y, surfaces[i]->w, surfaces[i]->h };
-                SDL_BlitSurface(surfaces[i], nullptr, atlasSurf, &dst);
+            stbtt_PackEnd(&pc);
+            return false;
+        }
+        stbtt_PackEnd(&pc);
 
-                int adv, minx, maxx, miny, maxy;
-                TTF_GetGlyphMetrics(m_font, charset[i], &minx, &maxx, &miny, &maxy, &adv);
-
-                Glyph& g = m_glyphs[charset[i]];
-                g.uvRect = { (float)rects[i].x, (float)rects[i].y, (float)surfaces[i]->w, (float)surfaces[i]->h };
-                g.size = { (float)surfaces[i]->w, (float)surfaces[i]->h };
-                g.advance = (float)adv;
-                g.bearing = { (float)minx, g.size.y + (float)miny };
-            }
-            if (surfaces[i]) SDL_DestroySurface(surfaces[i]);
+        // 4. Convert 8-bit Alpha format to 32-bit RGBA for standard GPU blitting
+        std::vector<unsigned char> rgbaPixels(atlasSize * atlasSize * 4, 255);
+        for (int i = 0; i < atlasSize * atlasSize; ++i)
+        {
+            // RGB remain pure white, Alpha maps directly from the font rasterizer
+            rgbaPixels[i * 4 + 3] = alphaPixels[i]; 
         }
 
+        // 5. Transfer to an SDL Texture
+        SDL_Surface* atlasSurf = SDL_CreateSurface(atlasSize, atlasSize, SDL_PIXELFORMAT_RGBA32);
+        if (!atlasSurf) return false;
+
+        std::memcpy(atlasSurf->pixels, rgbaPixels.data(), rgbaPixels.size());
         m_atlasTexture = SDL_CreateTextureFromSurface(renderer, atlasSurf);
         SDL_DestroySurface(atlasSurf);
+
+        // 6. Map stb_truetype values directly to your engine metrics
+        for (int i = 0; i < numChars; ++i)
+        {
+            char c = (char)(firstChar + i);
+            const auto& pc_char = packedChars[i];
+
+            Glyph& g = m_glyphs[c];
+            float w = (float)(pc_char.x1 - pc_char.x0);
+            float h = (float)(pc_char.y1 - pc_char.y0);
+
+            g.uvRect = { (float)pc_char.x0, (float)pc_char.y0, w, h };
+            g.size = { w, h };
+            g.advance = pc_char.xadvance;
+            g.bearing.x = pc_char.xoff;
+            g.bearing.y = -pc_char.yoff; 
+        }
+
+        // Fallback for missing characters
+        if (m_glyphs.find('?') == m_glyphs.end()) 
+        {
+            m_glyphs['?'] = m_glyphs[' '];
+        }
+
         return true;
-    }  
+    }
 } // namespace pgn

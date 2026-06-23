@@ -39,7 +39,6 @@ target_include_directories(imgui PUBLIC
 add_subdirectory(${TP_PATH}/SDL3)
 add_subdirectory(${TP_PATH}/glm)
 add_subdirectory(${TP_PATH}/SDL3_image)
-add_subdirectory(${TP_PATH}/SDL3_ttf) 
 add_subdirectory(${TP_PATH}/miniaudio) 
 add_subdirectory(${TP_PATH}/spdlog)
 
@@ -87,7 +86,6 @@ target_link_libraries(Penguin PRIVATE
     miniaudio
     SDL3::SDL3-static              
     SDL3_image::SDL3_image-static  
-    SDL3_ttf::SDL3_ttf-static
     imgui  
 )
 
