@@ -6,12 +6,16 @@
 
 namespace pgn
 {
+    const int MAX_ZINDEX = INT_MAX;
+    const int MIN_ZINDEX = INT_MIN;
+
     class Renderable
     {
     public:
         Renderable() = default;
         virtual ~Renderable() = default;
-    
+        
+        void setTransform(Transform2D t)        { m_transform = t; }
         void setPosition(float x, float y)      { m_transform.position = { x, y }; }
         void setPosition(Vector2 pos)           { m_transform.position = pos; }
         void setRotation(float angle)           { m_transform.rotation = angle; }

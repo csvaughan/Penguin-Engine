@@ -37,9 +37,9 @@ target_include_directories(imgui PUBLIC
 # 2. EXTERNAL DEPENDENCIES (Subdirectories)
 # ==============================================================================
 add_subdirectory(${TP_PATH}/SDL3)
-add_subdirectory(${TP_PATH}/glm)
 add_subdirectory(${TP_PATH}/SDL3_image)
 add_subdirectory(${TP_PATH}/miniaudio) 
+add_subdirectory(${TP_PATH}/box2d)
 add_subdirectory(${TP_PATH}/spdlog)
 
 # Link ImGui to your local static SDL3 target
@@ -52,13 +52,15 @@ file(GLOB_RECURSE PENGUIN_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}
 
 add_library(Penguin STATIC ${PENGUIN_SOURCES})
 
+target_precompile_headers(Penguin PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/pgpch.h")
+
 # Compile Definitions
 target_compile_definitions(Penguin PRIVATE PGN_ENGINE_EXPORTS)
 
 if(PRODUCTION_BUILD)
-    target_compile_definitions(Penguin PRIVATE ENGINE_RESOURCES_PATH="./resources/" PRODUCTION_BUILD=1) 
+    target_compile_definitions(Penguin PRIVATE ENGINE_ASSET_PATH="./assets/" PRODUCTION_BUILD=1) 
 else()
-    target_compile_definitions(Penguin PRIVATE ENGINE_RESOURCES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/resources/" PRODUCTION_BUILD=0)
+    target_compile_definitions(Penguin PRIVATE ENGINE_ASSET_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/" PRODUCTION_BUILD=0)
 endif()
 
 # Configuration-specific definitions
@@ -82,11 +84,11 @@ target_include_directories(Penguin PUBLIC
 
 # Link Libraries for the Engine
 target_link_libraries(Penguin PRIVATE
-    glm
     miniaudio
     SDL3::SDL3-static              
     SDL3_image::SDL3_image-static  
     imgui  
+    box2d::box2d
 )
 
 target_link_libraries(Penguin PUBLIC spdlog)

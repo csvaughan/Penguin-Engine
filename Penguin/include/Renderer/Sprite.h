@@ -1,5 +1,5 @@
 #pragma once
-#include "Assets/Texture.h"
+#include "Asset/Texture.h"
 #include "Renderable.h"
 #include "Memory/Ref.h"
 

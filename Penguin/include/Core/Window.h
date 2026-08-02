@@ -6,6 +6,7 @@
     struct SDL_Renderer;
     union SDL_Event;
     struct SDL_Window;
+    struct SDL_Surface;
 
 namespace pgn {
 
@@ -38,7 +39,8 @@ namespace pgn {
 
         SDL_Window* GetHandle() const { return m_Handle; }
         SDL_Renderer* GetRenderer() const { return m_Renderer; } 
-
+        
+        bool SetIcon(std::string& path);
         void SetFullscreen(bool enabled);
         void SetWindowedFullscreen(bool enabled);
         bool IsFullscreen() const;

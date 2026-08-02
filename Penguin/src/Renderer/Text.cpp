@@ -1,18 +1,15 @@
 #include "Renderer/Text.h"
-#include "Assets/Font.h"
+#include "Asset/Font.h"
 
 namespace pgn
 {
-
     Text::Text(Ref<Font> font, const std::string &string, unsigned int characterSize): m_font(font), m_content(string) {}
 
     const Ref<Font> Text::getFont() const { return m_font.lock(); }
-
-
-        void Text::setFont(Ref<Font> font) { m_font = font; m_isDirty = true; }
+    
+    void Text::setFont(Ref<Font> font) { m_font = font; m_isDirty = true; }
 
     SDL_Texture *Text::getAtlasTexture() const
-
     {
         auto font = m_font.lock(); 
         return font ? font->getAtlasTexture() : nullptr;

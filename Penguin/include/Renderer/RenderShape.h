@@ -1,5 +1,4 @@
 #pragma once
-#include "Math/Rect.h"
 #include "Renderable.h"
 
 namespace pgn {
@@ -37,6 +36,9 @@ namespace pgn {
         
         void setSize(Vector2 size) { m_size = size; }
         Vector2 getSize() const    { return m_size; }
+
+        float getWidth() {return m_size.x; }
+        float getHeight() {return m_size.y; }
 
         FloatRect getLocalBounds() const override { return { 0.0f, 0.0f, m_size.x, m_size.y }; }
 
@@ -85,7 +87,6 @@ namespace pgn {
             return { getPosition().x + local.x, getPosition().y + local.y, local.w, local.h };
         }
 
-    private:
         void setPoints(Vector2 p1, Vector2 p2) 
         {
             Vector2 center = (p1 + p2) * 0.5f;

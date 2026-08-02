@@ -1,7 +1,7 @@
 #include "Audio/AudioSystem.h"
-#include "Assets/Audio.h" 
+#include "Asset/Audio.h" 
 #include "Math/Vector.h"
-#include <glm/common.hpp>
+#include "Math/MathUtils.h"
 
 namespace pgn
 {
@@ -105,21 +105,21 @@ namespace pgn
     void AudioSystem::SetMasterVolume(float volume) 
     {
         if (!s_Data || !s_Data->Initialized) return;
-        s_Data->MasterVolume = glm::clamp(volume, 0.0f, 1.0f);
+        s_Data->MasterVolume = Math::Clamp(volume, 0.0f, 1.0f);
         ma_engine_set_volume(&s_Data->Engine, s_Data->MasterVolume);
     }
 
     void AudioSystem::SetMusicVolume(float volume) 
     {
         if (!s_Data || !s_Data->Initialized) return;
-        s_Data->MusicVolume = glm::clamp(volume, 0.0f, 1.0f);
+        s_Data->MusicVolume = Math::Clamp(volume, 0.0f, 1.0f);
         if (s_Data) ma_sound_group_set_volume(&s_Data->MusicGroup, volume);
     }
 
     void AudioSystem::SetSFXVolume(float volume) 
     {
         if (!s_Data || !s_Data->Initialized) return;
-        s_Data->SFXVolume = glm::clamp(volume, 0.0f, 1.0f);
+        s_Data->SFXVolume = Math::Clamp(volume, 0.0f, 1.0f);
         ma_sound_group_set_volume(&s_Data->SFXGroup, volume);
     }
 

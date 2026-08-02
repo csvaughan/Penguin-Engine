@@ -1,9 +1,6 @@
 #pragma once
 #include "Color.h"
-#include "Math/Vector.h"
-#include "Math/Rect.h" // Assuming this defines FloatRect
-#include <vector>
-#include <algorithm>
+#include "Math/Rect.h"
 
 namespace pgn
 {

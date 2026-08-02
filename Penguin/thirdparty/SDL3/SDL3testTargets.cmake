@@ -55,11 +55,11 @@ set_target_properties(SDL3::SDL3_test PROPERTIES
   INTERFACE_SDL_VERSION "SDL3"
 )
 
-# Import target "SDL3::SDL3_test" for configuration ""
-set_property(TARGET SDL3::SDL3_test APPEND PROPERTY IMPORTED_CONFIGURATIONS NOCONFIG)
+# Import target "SDL3::SDL3_test" for configuration "Debug"
+set_property(TARGET SDL3::SDL3_test APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
 set_target_properties(SDL3::SDL3_test PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_NOCONFIG "C"
-  IMPORTED_LOCATION_NOCONFIG "/home/caleb/Documents/Code Repos/Penguin Engine/Penguin/thirdparty/SDL3/libSDL3_test.a"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "C"
+  IMPORTED_LOCATION_DEBUG "/home/caleb/Documents/Code Repos/Penguin Engine/Penguin/thirdparty/SDL3/libSDL3_test.a"
   )
 
 # Make sure the targets which have been exported in some other

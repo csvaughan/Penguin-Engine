@@ -1,8 +1,6 @@
 #pragma once
-#include "pgpch.h"
 #include "Memory/Ref.h"
 #include "Math/Rect.h"
-
 
 namespace pgn {
 

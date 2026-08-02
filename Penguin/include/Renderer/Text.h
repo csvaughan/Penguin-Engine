@@ -1,6 +1,5 @@
 #pragma once
-#include "Renderer/VertexArray.h"
-#include "Math/Rect.h"
+#include "VertexArray.h"
 #include "Renderable.h"
 #include "Memory/Ref.h"
 

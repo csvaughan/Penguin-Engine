@@ -6,6 +6,7 @@
 #include <SDL3/SDL_render.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3_image/SDL_image.h>
 #include <imgui_impl_sdl3.h>
 
 namespace pgn 
@@ -51,7 +52,7 @@ namespace pgn
 
         // 3. Handle VSync via Renderer properties
         SDL_SetRenderVSync(m_Renderer, m_Specification.VSync ? 1 : 0);
-        
+
         SDL_ShowWindow(m_Handle);
     }
 
@@ -201,7 +202,23 @@ namespace pgn
 		return m_ShouldClose;
 	}
 
-	void Window::SetFullscreen(bool enabled) 
+	bool Window::SetIcon(std::string &path)
+    {
+		SDL_Surface* iconSurface = IMG_Load(path.c_str());
+		if (iconSurface) 
+		{
+			SDL_SetWindowIcon(m_Handle, iconSurface);
+			SDL_DestroySurface(iconSurface);
+			return true;
+		} 
+		else 
+		{
+			SDL_Log("Failed to load window icon: %s", SDL_GetError());
+			return false;
+		}
+    }
+
+    void Window::SetFullscreen(bool enabled) 
 	{
 		SDL_SetWindowFullscreen(m_Handle, enabled);
 	}

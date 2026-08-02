@@ -2,7 +2,6 @@
 #include "Math/Vector.h"
 #include "Math/Rect.h"
 #include "Math/Transform.h"
-#include <spdlog/logger.h>
 
 // --- Custom Type Formatters ---
 

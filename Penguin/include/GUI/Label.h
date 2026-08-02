@@ -1,7 +1,7 @@
 #pragma once
 #include "GUIElement.h"
 #include "Renderer/Text.h"
-#include "Assets/Font.h"
+#include "Asset/Font.h"
 
 namespace pgn::GUI {
 

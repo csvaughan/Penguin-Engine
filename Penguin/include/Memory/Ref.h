@@ -1,10 +1,5 @@
 #pragma once
-
-#include <atomic>
-#include <utility>
-#include <type_traits>
-#include <mutex>
-#include <functional>
+#include "pgpch.h"
 
 namespace pgn {
 

@@ -43,7 +43,6 @@ namespace pgn {
             auto it = currentListeners->find(e.GetEventType());
             if (it != currentListeners->end()) 
             {
-                // We are now iterating over a point-in-time snapshot.
                 // Even if another thread changes the "Active" map, this pointer stays valid.
                 for (auto const& [id, callback] : it->second) 
                 {

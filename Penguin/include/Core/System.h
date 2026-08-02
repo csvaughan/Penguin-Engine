@@ -33,7 +33,7 @@ namespace pgn {
         AppContext& App() {return m_context; }
 
          /**
-         * Use this for Global Events (broadcasts using the Event Bus).
+         * Global Events (broadcasts using the Event Bus).
          */
         template<typename TEvent, typename TObject>
         requires(std::is_base_of_v<Event, TEvent>)
@@ -52,7 +52,7 @@ namespace pgn {
         }
 
         /**
-         * Use this for Local Event handling.
+         * Local Event handling.
          */
         template<typename TEvent, typename TObject>
         requires(std::is_base_of_v<Event, TEvent>)

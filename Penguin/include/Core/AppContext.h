@@ -3,16 +3,16 @@
 #include "Timestep.h"
 #include "Events/EventToken.h"
 #include "Memory/Ref.h"
-#include "Assets/Audio.h"
-#include "Assets/Font.h"
-#include "Assets/Texture.h"
+#include "Asset/Audio.h"
+#include "Asset/Font.h"
+#include "Asset/Texture.h"
 
 namespace pgn
 {
     class AppContext
     {
     public:
-        AppContext() : app(Application::Get()), assets(app.Get().GetAssetManager()), window(*app.Get().GetWindow()) {}
+        AppContext() : app(Application::Get()), assets(app.GetAssetManager()), window(*app.Get().GetWindow()) {}
         ~AppContext() {}
 
         //Application getters
@@ -39,6 +39,9 @@ namespace pgn
         void ClearFonts()       { assets.clearFonts(); }
         void ClearAudio()       { assets.clearAudio();}
         void ClearAllAssets()   { assets.clearAllAssets(); }
+
+        //Events
+        void RaiseEvent(Event& event) { app.RaiseEvent(event); }
 
     private:
         Application& app;
