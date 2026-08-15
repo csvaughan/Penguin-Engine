@@ -24,7 +24,7 @@ namespace pgn::GUI {
             m_image = AddChild<UIImage>(Vector2{0,0}, m_bounds.getSize(), texture, "PanelImage");
     }
 
-    void Panel::OnRender(float alpha) 
+    void Panel::OnRender(float alpha, Renderer& renderer) 
     {
         if (!m_visible) return;
         m_backgroundColor.a = (!m_enabled) ? 0.5f : 1.0f;
@@ -42,10 +42,10 @@ namespace pgn::GUI {
             m_background.setPosition(bounds.getPosition());
             m_background.setZIndex(m_zIndex); 
             m_background.setColor(m_backgroundColor);
-            Renderer::Submit(m_background);
+            m_background.render(renderer);
         }
 
-        GUIElement::OnRender(alpha);
+        GUIElement::OnRender(alpha, renderer);
     }
 
     bool Panel::OnEvent(Event& e) 

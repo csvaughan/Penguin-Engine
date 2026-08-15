@@ -7,6 +7,7 @@
 namespace pgn
 {
 	class State;
+	class Renderer;
 
 	struct ApplicationSpecification
 	{
@@ -57,6 +58,8 @@ namespace pgn
 	private:
 		ApplicationSpecification m_Specification;
 		Ref<Window> m_Window;
+		Scope<Renderer> m_Renderer;
+		
 		bool m_Running = false;
 		bool m_Minimized = false;
 

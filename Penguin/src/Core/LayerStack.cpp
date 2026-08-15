@@ -78,10 +78,10 @@ namespace pgn
         }
     }
 
-    void LayerStack::render(float alpha)
+    void LayerStack::render(float alpha, Renderer& renderer)
     {
         for (const auto& layer : m_layers)
-            layer->OnRender(alpha);         
+            layer->OnRender(alpha, renderer);         
     }   
 
     void LayerStack::broadcastShutdown(AppQuitEvent& e)

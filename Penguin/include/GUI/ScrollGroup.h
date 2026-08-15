@@ -21,8 +21,8 @@ namespace pgn::GUI {
         virtual Vector2 GetInternalOffset() const override { return m_scrollOffset; }
 
     protected:
-        virtual void OnRender(float alpha) override;
-        virtual void RenderChildren(float alpha) override;
+        virtual void OnRender(float alpha, Renderer& renderer) override;
+        virtual void RenderChildren(float alpha, Renderer& renderer) override;
         virtual bool OnEvent(Event& e) override;
 
         void ClampScroll();

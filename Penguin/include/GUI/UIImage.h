@@ -31,7 +31,7 @@ namespace pgn::GUI
             GUIElement::OnUpdate(ts);
         }
 
-        void OnRender(float alpha) override
+        void OnRender(float alpha, Renderer& renderer) override
         {
             if (!m_enabled) return;
 
@@ -40,8 +40,7 @@ namespace pgn::GUI
             m_sprite.setPosition(globalBounds.getPosition());
             Vector2 texSize = m_sprite.getTextureRect().getSize();
             m_sprite.setScale({ globalBounds.w / texSize.x, globalBounds.h / texSize.y });
-
-            Renderer::Submit(m_sprite);
+            m_sprite.render(renderer);
         }
 
     private:

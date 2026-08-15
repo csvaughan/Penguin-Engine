@@ -4,6 +4,7 @@
 namespace pgn {
 
     class AppQuitEvent;
+    class Renderer;
 
     class ISystem
     {
@@ -18,7 +19,7 @@ namespace pgn {
         virtual void OnEnter() {}
         virtual void OnExit() {}
         virtual void OnUpdate(Timestep ts) {}
-        virtual void OnRender(float alpha) {} 
+        virtual void OnRender(float alpha, Renderer& renderer) {} 
         
         virtual void OnEvent(Event& e) 
         {

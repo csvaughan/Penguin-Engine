@@ -44,17 +44,17 @@ namespace pgn::GUI
             }
         }
 
-        void OnRender(float alpha)
+        void OnRender(float alpha, Renderer& renderer)
         {
-            Renderer::BeginScene(); 
+            renderer.BeginScene(); 
 
             for (auto& c : m_canvases)
             {
                 if (c->IsEnabled())
-                    c->OnRender(alpha);
+                    c->OnRender(alpha, renderer);
             }
 
-            Renderer::EndScene();
+            renderer.EndScene();
         }
 
     private:

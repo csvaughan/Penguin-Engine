@@ -2,23 +2,14 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 #include <SDL3/SDL.h>
+#include <fstream>
+#include <cmath>
 
 namespace pgn
 {
     Font::Font(SDL_Renderer* renderer, const std::string& path, float ptsize)
     {
-        if (generateAtlas(renderer, path, ptsize)) 
-        {
-            // Atlas successfully generated
-        }
-    }
-
-    Font::~Font()
-    {
-        if (m_atlasTexture) 
-        {
-            SDL_DestroyTexture(m_atlasTexture);
-        }
+        generateAtlas(renderer, path, ptsize);
     }
 
     const Glyph& Font::getGlyph(char c) const
@@ -57,13 +48,10 @@ namespace pgn
         std::vector<unsigned char> alphaPixels(atlasSize * atlasSize, 0);
 
         stbtt_pack_context pc;
-        // 1 pixel of padding between characters to completely prevent bleeding
         if (!stbtt_PackBegin(&pc, alphaPixels.data(), atlasSize, atlasSize, 0, 1, nullptr)) return false;
 
-        // Optional: Set to 2, 2 or higher for subpixel anti-aliasing oversampling
         stbtt_PackSetOversampling(&pc, 1, 1); 
 
-        // We will pack standard printable ASCII characters (32 [space] to 126 ['~'])
         const int firstChar = 32;
         const int numChars = 95;
         std::vector<stbtt_packedchar> packedChars(numChars);
@@ -81,23 +69,25 @@ namespace pgn
         }
         stbtt_PackEnd(&pc);
 
-        // 4. Convert 8-bit Alpha format to 32-bit RGBA for standard GPU blitting
+        // 4. Convert 8-bit Alpha format to 32-bit RGBA
         std::vector<unsigned char> rgbaPixels(atlasSize * atlasSize * 4, 255);
         for (int i = 0; i < atlasSize * atlasSize; ++i)
         {
-            // RGB remain pure white, Alpha maps directly from the font rasterizer
             rgbaPixels[i * 4 + 3] = alphaPixels[i]; 
         }
 
-        // 5. Transfer to an SDL Texture
+        // 5. Transfer to an SDL Surface and create native texture handle
         SDL_Surface* atlasSurf = SDL_CreateSurface(atlasSize, atlasSize, SDL_PIXELFORMAT_RGBA32);
         if (!atlasSurf) return false;
 
         std::memcpy(atlasSurf->pixels, rgbaPixels.data(), rgbaPixels.size());
-        m_atlasTexture = SDL_CreateTextureFromSurface(renderer, atlasSurf);
+        SDL_Texture* rawAtlasTex = SDL_CreateTextureFromSurface(renderer, atlasSurf);
+
+        if (!rawAtlasTex) return false;
+        m_atlasTexture = CreateRef<Texture>(renderer, atlasSurf);
         SDL_DestroySurface(atlasSurf);
 
-        // 6. Map stb_truetype values directly to your engine metrics
+        // 6. Map stb_truetype values directly to engine metrics
         for (int i = 0; i < numChars; ++i)
         {
             char c = (char)(firstChar + i);
@@ -114,7 +104,6 @@ namespace pgn
             g.bearing.y = -pc_char.yoff; 
         }
 
-        // Fallback for missing characters
         if (m_glyphs.find('?') == m_glyphs.end()) 
         {
             m_glyphs['?'] = m_glyphs[' '];

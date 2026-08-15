@@ -6,6 +6,9 @@
 #include "Memory/Ref.h"
 #include "UICanvas.h"
 
+
+namespace pgn { class Renderer; }
+
 namespace pgn::GUI {
 
     enum class UILayoutDirection { Vertical, Horizontal };
@@ -19,8 +22,6 @@ namespace pgn::GUI {
     };
 
     //Used for some direction dependant elements
-    
-
     enum class UIState  { Normal, Hovered, Pressed, Disabled };
     enum class Anchor   { TopLeft, TopCenter, TopRight, CenterLeft, Center, CenterRight, BottomLeft, BottomCenter, BottomRight };
     enum class Pivot    { TopLeft, Center, BottomRight };
@@ -84,16 +85,16 @@ namespace pgn::GUI {
         bool IsVisible() const { return m_visible; }
         bool IsEnabled() const { return m_enabled; }
 
-        void Render(float alpha) 
+        void Render(float alpha, Renderer& renderer) 
         { 
             if (!m_visible) return; 
-            OnRender(alpha);       
-            RenderChildren(alpha); 
+            OnRender(alpha, renderer);       
+            RenderChildren(alpha, renderer); 
         }
 
     protected:
         virtual void OnUpdate(Timestep dt);
-        virtual void OnRender(float alpha) {}
+        virtual void OnRender(float alpha, Renderer& renderer) {}
         virtual bool OnEvent(Event& e);
 
         bool Contains(Vector2 point) {return GetGlobalBounds().contains(point); }
@@ -102,10 +103,10 @@ namespace pgn::GUI {
 
         virtual Vector2 ScreenToLocal(Vector2 screenPoint) const;
 
-        virtual void RenderChildren(float alpha) 
+        virtual void RenderChildren(float alpha, Renderer& renderer) 
         {
             for (auto& child : m_children) 
-                child->Render(alpha);
+                child->Render(alpha, renderer);
         }
 
     protected:

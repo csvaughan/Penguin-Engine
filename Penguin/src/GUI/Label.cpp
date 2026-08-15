@@ -40,12 +40,11 @@ namespace pgn::GUI {
         });
     }
 
-    void Label::OnRender(float alpha)
+    void Label::OnRender(float alpha, Renderer& renderer)
     {
         if (!m_visible) return;
-
-        Renderer::Submit(m_text);
-        GUIElement::OnRender(alpha);
+        m_text.render(renderer);
+        GUIElement::OnRender(alpha, renderer);
     }
 
 } // namespace pgn::GUI

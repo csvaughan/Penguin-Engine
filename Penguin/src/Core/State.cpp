@@ -30,9 +30,9 @@ namespace pgn
         m_layers.update(dt);  
     }
 
-    void State::OnRender(float alpha) 
+    void State::OnRender(float alpha, Renderer& renderer) 
     { 
-        m_layers.render(alpha);
+        m_layers.render(alpha, renderer);
     }
 
     void State::OnLayerPop(LayerPopEvent& e){PGN_CORE_INFO("Layer: {} popped from stack.", e.GetLayer()->GetName());}

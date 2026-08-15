@@ -13,7 +13,7 @@ public:
     void LoadLevel(const std::string& filepath) {}
     
     virtual void OnUpdate(pgn::Timestep ts) override;
-    virtual void OnRender(float alpha) override;
+    virtual void OnRender(float alpha, pgn::Renderer& renderer) override;
 
 private:
     pgn::Scope<GameMap> m_currentMap;

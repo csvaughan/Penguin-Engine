@@ -179,29 +179,34 @@ namespace pgn
         }
     }
 
-    void pgn::PhysicsWorld::DrawDebug()
+    void pgn::PhysicsWorld::DrawDebug(Renderer& renderer)
     {
         if (!m_isDebugOn) return;
         if (m_worldId == 0 || !b2World_IsValid(ToB2World(m_worldId))) return;
 
-        auto ExecutePass = [this](bool showJoints, bool showContacts, auto passFunction) {
+        auto ExecutePass = [this](bool showJoints, bool showContacts, Renderer& renderer, auto passFunction ) {
             b2DebugDraw dd = b2DefaultDebugDraw();
             dd.drawShapes = true;
             dd.drawJoints = showJoints;
             dd.drawContacts = showContacts;
             dd.context = this;
-            passFunction(dd);
+            passFunction(dd, renderer);
             b2World_Draw(ToB2World(m_worldId), &dd);
         };
 
-        if (m_drawDebugBodies)    ExecutePass(false, false, [this](b2DebugDraw& dd) { DrawBodies(dd); });
-        if (m_drawDebugColliders) ExecutePass(true,  true,  [this](b2DebugDraw& dd) { DrawColliders(dd); });
+        if (m_drawDebugBodies)    ExecutePass(false, false, renderer, [this](b2DebugDraw& dd, Renderer& renderer) { DrawBodies(dd, renderer); });
+        if (m_drawDebugColliders) ExecutePass(true,  true,  renderer, [this](b2DebugDraw& dd, Renderer& renderer) { DrawColliders(dd, renderer); });
     }
 
-    void PhysicsWorld::DrawBodies(b2DebugDraw& debugDraw)
+    void PhysicsWorld::DrawBodies(b2DebugDraw& debugDraw, Renderer& renderer)
     {
+        // Pass the renderer instance through Box2D's context pointer
+        debugDraw.context = &renderer;
+
         // Circle Bodies
         debugDraw.DrawSolidCircleFcn = [](b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color, void* context) {
+            auto& renderer = *static_cast<Renderer*>(context);
+
             b2Vec2 worldCenter = b2RotateVector(transform.q, center) + transform.p;
             CircleShape circle;
             circle.setRadius(radius);
@@ -209,13 +214,16 @@ namespace pgn
             circle.setTransform(CreateDebugTransform({ worldCenter.x, worldCenter.y }, transform));
             circle.centerOrigin();
             circle.setZIndex(DEBUG_ZINDEX);
-            Renderer::Submit(circle);
+            circle.render(renderer);
         };
 
         // Polygon Bodies (Boxes & Triangles)
         debugDraw.DrawSolidPolygonFcn = [](b2WorldTransform transform, const b2Vec2* vertices, int32_t vertexCount, float radius, b2HexColor color, void* context) {
             if (vertexCount < 3) return;
-            else if (vertexCount == 4)
+
+            auto& renderer = *static_cast<Renderer*>(context);
+
+            if (vertexCount == 4)
             {
                 float width  = std::abs(vertices[1].x - vertices[0].x);
                 float height = std::abs(vertices[2].y - vertices[1].y);
@@ -226,7 +234,7 @@ namespace pgn
                 rect.setTransform(CreateDebugTransform({ transform.p.x, transform.p.y }, transform));
                 rect.centerOrigin();
                 rect.setZIndex(DEBUG_ZINDEX);
-                Renderer::Submit(rect);
+                rect.render(renderer);
             }
             else
             {
@@ -234,12 +242,15 @@ namespace pgn
                 Color fillCol = ConvertBox2DColor(color, DEBUG_BODY_ALPHA);
                 for (int32_t i = 0; i < vertexCount; ++i) { va.addVertex({ {vertices[i].x, vertices[i].y}, fillCol, {0.0f, 0.0f} }); }
                 for (int32_t i = 1; i < vertexCount - 1; ++i) { va.addIndex(0); va.addIndex(i); va.addIndex(i + 1); }
-                Renderer::Submit(va, nullptr, CreateDebugTransform({ transform.p.x, transform.p.y }, transform), DEBUG_ZINDEX);
+                Matrix4 transformMatrix = CreateDebugTransform({ transform.p.x, transform.p.y }, transform).GetModelMatrix();
+                renderer.Submit(va, nullptr, transformMatrix, DEBUG_ZINDEX, RenderPass::Diffuse);
             }
         };
 
         // Capsule Bodies
         debugDraw.DrawSolidCapsuleFcn = [](b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+            auto& renderer = *static_cast<Renderer*>(context);
+
             CircleShape cap1, cap2;
             cap1.setRadius(radius); cap1.setColor(ConvertBox2DColor(color, DEBUG_BODY_ALPHA));
             cap2.setRadius(radius); cap2.setColor(ConvertBox2DColor(color, DEBUG_BODY_ALPHA));
@@ -249,27 +260,33 @@ namespace pgn
             t2.position = {p2.x, p2.y}; cap2.setTransform(t2);
 
             cap1.setZIndex(DEBUG_ZINDEX);
-            cap1.setZIndex(DEBUG_ZINDEX);
-
-            Renderer::Submit(cap1);
-            Renderer::Submit(cap2);
+            cap2.setZIndex(DEBUG_ZINDEX);
+            cap1.render(renderer);
+            cap2.render(renderer);
         };
     }
 
-    void PhysicsWorld::DrawColliders(b2DebugDraw& debugDraw)
+    void PhysicsWorld::DrawColliders(b2DebugDraw& debugDraw, Renderer& renderer)
     {
-        // Base Line Drawing (Joints, Grid grids, Raycasts)
+        // Pass the renderer instance through Box2D's context pointer
+        debugDraw.context = &renderer;
+
+        // Base Line Drawing (Joints, Grid lines, Raycasts)
         debugDraw.DrawLineFcn = [](b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
+            auto& renderer = *static_cast<Renderer*>(context);
+
             LineShape line;
             line.setPoints({p1.x, p1.y}, {p2.x, p2.y});
             line.setColor(ConvertBox2DColor(color, DEBUG_LINE_ALPHA));
             line.setOutlineThickness(DEBUG_LINE_THICKNESS);
             line.setZIndex(DEBUG_ZINDEX);
-            Renderer::Submit(line);
+            line.render(renderer);
         };
 
         // Circle Colliders (Expanded Ring)
         debugDraw.DrawSolidCircleFcn = [](b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color, void* context) {
+            auto& renderer = *static_cast<Renderer*>(context);
+
             b2Vec2 worldCenter = b2RotateVector(transform.q, center) + transform.p;
             CircleShape colliderOutline;
             colliderOutline.setRadius(radius + DEBUG_LINE_PADDING);
@@ -278,12 +295,14 @@ namespace pgn
             colliderOutline.setTransform(CreateDebugTransform({ worldCenter.x, worldCenter.y }, transform));
             colliderOutline.centerOrigin();
             colliderOutline.setZIndex(DEBUG_ZINDEX);
-            Renderer::Submit(colliderOutline);
+            colliderOutline.render(renderer);
         };
 
         // Polygon Colliders (Expanded Rectangles / Outlined Hulls)
         debugDraw.DrawSolidPolygonFcn = [](b2WorldTransform transform, const b2Vec2* vertices, int32_t vertexCount, float radius, b2HexColor color, void* context) {
             if (vertexCount < 3) return;
+
+            auto& renderer = *static_cast<Renderer*>(context);
 
             if (vertexCount == 4)
             {
@@ -297,7 +316,7 @@ namespace pgn
                 colliderOutline.setTransform(CreateDebugTransform({ transform.p.x, transform.p.y }, transform));
                 colliderOutline.centerOrigin();
                 colliderOutline.setZIndex(DEBUG_ZINDEX);
-                Renderer::Submit(colliderOutline);
+                colliderOutline.render(renderer);
             }
             else
             {
@@ -313,19 +332,21 @@ namespace pgn
                     border.setColor(ConvertBox2DColor(color, DEBUG_LINE_ALPHA));
                     border.setOutlineThickness(DEBUG_LINE_THICKNESS);
                     border.setZIndex(DEBUG_ZINDEX);
-                    Renderer::Submit(border);
+                    border.render(renderer);
                 }
             }
         };
 
         // Capsule Colliders
         debugDraw.DrawSolidCapsuleFcn = [](b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor color, void* context) {
+            auto& renderer = *static_cast<Renderer*>(context);
+
             LineShape core;
             core.setPoints({p1.x, p1.y}, {p2.x, p2.y});
             core.setColor(ConvertBox2DColor(color, DEBUG_LINE_ALPHA));
             core.setOutlineThickness((radius * 2.0f) + DEBUG_LINE_THICKNESS);
             core.setZIndex(DEBUG_ZINDEX);
-            Renderer::Submit(core);
+            core.render(renderer);
         };
     }
 
@@ -424,8 +445,8 @@ namespace pgn
         }
     }
 
-    void PhysicsWorld::OnRender(float alpha)
+    void PhysicsWorld::OnRender(float alpha, Renderer& renderer)
     {
-        DrawDebug(); 
+        DrawDebug(renderer); 
     }
 } // namespace pgn

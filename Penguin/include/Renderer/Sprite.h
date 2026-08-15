@@ -1,9 +1,10 @@
 #pragma once
 #include "Asset/Texture.h"
 #include "Renderable.h"
-#include "Memory/Ref.h"
 
 namespace pgn {
+
+    class Renderer;
 
     class Sprite : public Renderable
     {
@@ -23,6 +24,8 @@ namespace pgn {
         WeakRef<Texture> getTexture() const { return m_texture; }
         const IntRect& getTextureRect() const { return m_textureRect; }
         FloatRect getLocalBounds() const override { return { 0.0f, 0.0f, static_cast<float>(m_textureRect.w), static_cast<float>(m_textureRect.h) }; }
+
+        void render(Renderer& renderer) const override;
 
     private:
         WeakRef<Texture> m_texture;

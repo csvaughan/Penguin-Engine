@@ -64,11 +64,11 @@ namespace pgn::GUI {
         for (auto& root : m_rootElements) root->OnUpdate(dt);
     }
 
-    void UICanvas::OnRender(float alpha) 
+    void UICanvas::OnRender(float alpha, Renderer& renderer) 
     {
         if (!m_isEnabled) return;
         for (auto& root : m_rootElements) 
-            root->Render(alpha);
+            root->Render(alpha, renderer);
     }
 
     bool UICanvas::OnEvent(Event& e) 

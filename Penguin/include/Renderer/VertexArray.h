@@ -8,7 +8,7 @@ namespace pgn
     {
         Vector2 position;
         Color color;
-        Vector2 tex_coord;
+        Vector2 texCoords;
     };
 
     class VertexArray 

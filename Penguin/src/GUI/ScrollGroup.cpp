@@ -8,17 +8,17 @@ namespace pgn::GUI {
     ScrollGroup::ScrollGroup(UICanvas* canvas, UIElementID id, Vector2 pos, Vector2 size, const std::string& name, GUIElement* parent)
         : GUIElement(canvas, id ,pos, size, name, parent) {}
 
-    void ScrollGroup::OnRender(float alpha) 
+    void ScrollGroup::OnRender(float alpha, Renderer& renderer) 
     {
         // Draw the background/frame of the scroll area
         // This is NOT affected by the scroll offset or the scissor
         // Renderer::Submit(m_frameSprite); 
     }
 
-    void ScrollGroup::RenderChildren(float alpha)
+    void ScrollGroup::RenderChildren(float alpha, Renderer& renderer)
     {
         // 1. Clip children to the ScrollGroup's visible area
-        Renderer::PushScissor(GetGlobalBounds(), m_zIndex);
+        /*renderer.PushScissor(GetGlobalBounds(), m_zIndex);
 
         // 2. Shift the coordinate system for all children
         Renderer::PushTransform(Matrix4::Translate({-m_scrollOffset.x, -m_scrollOffset.y, 0.0f}));
@@ -28,7 +28,7 @@ namespace pgn::GUI {
 
         // 4. Restore Renderer state
         Renderer::PopTransform();
-        Renderer::PopScissor(m_zIndex);
+        Renderer::PopScissor(m_zIndex);*/
     }
 
     

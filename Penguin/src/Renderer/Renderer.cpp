@@ -1,33 +1,10 @@
 #include "Renderer/Renderer.h"
-#include "Renderer/RenderCommand.h"
-#include "Renderer/Sprite.h"
-#include "Renderer/Text.h"
-#include "Renderer/RenderShape.h"
-#include "Renderer/Camera.h"
-#include "Renderer/VertexArray.h"
-#include "Core/Window.h"
-#include "Math/Matrix4.h"
-#include "Math/MathUtils.h"
 #include "Log/Log.h"
 #include <SDL3/SDL_render.h>
+#include <algorithm>
 
-namespace pgn {
-
-    struct RendererData 
-    {
-        SDL_Renderer* sdlRenderer = nullptr;
-        std::vector<RenderItem> queue;
-        std::vector<FloatRect> scissorStack; 
-        std::vector<Matrix4> transformStack;
-        uint32_t nextStateGroupID = 0;
-        Ref<Window> window;
-        size_t frameDrawCalls = 0;
-        Matrix4 viewProjectionMatrix;
-        FloatRect cameraBounds;
-    };
-
-    static RendererData* s_Data = nullptr;
-
+namespace pgn 
+{
     static inline Vector2 transformPoint(const Vector2& v, const Matrix4& m) 
     {
         return {
@@ -36,360 +13,290 @@ namespace pgn {
         };
     }
 
-    static SDL_Texture* getCommandTexture(const RenderCommand& cmd) 
+    // Transform a local bounding box into world space AABB
+    static inline FloatRect transformRect(const FloatRect& rect, const Matrix4& m)
     {
-        return std::visit([](auto&& arg) -> SDL_Texture* {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, SpriteCommand>)   return arg.texture;
-            if constexpr (std::is_same_v<T, GeometryCommand>) return arg.texture;
-            if constexpr (std::is_same_v<T, TextCommand>)     return arg.fontAtlas;
-            return (SDL_Texture*)nullptr; 
-        }, cmd);
+        Vector2 p1 = transformPoint({ rect.x, rect.y }, m);
+        Vector2 p2 = transformPoint({ rect.x + rect.w, rect.y }, m);
+        Vector2 p3 = transformPoint({ rect.x + rect.w, rect.y + rect.h }, m);
+        Vector2 p4 = transformPoint({ rect.x, rect.y + rect.h }, m);
+
+        float minX = std::min({ p1.x, p2.x, p3.x, p4.x });
+        float maxX = std::max({ p1.x, p2.x, p3.x, p4.x });
+        float minY = std::min({ p1.y, p2.y, p3.y, p4.y });
+        float maxY = std::max({ p1.y, p2.y, p3.y, p4.y });
+
+        return { minX, minY, maxX - minX, maxY - minY };
     }
 
-    static void prepareScene(const FloatRect& bounds, const Matrix4& vpm) 
+    Renderer::Renderer(Ref<Window> window)
     {
-        s_Data->viewProjectionMatrix = vpm;
-        s_Data->cameraBounds = bounds;
-        s_Data->queue.clear(); 
-        s_Data->frameDrawCalls = 0;
-        s_Data->nextStateGroupID = 0;
-        s_Data->transformStack.clear();
-        s_Data->transformStack.push_back(vpm); 
+        PGN_ASSERT(window, "Window handle provided to Renderer was null!");
+        m_SDLRenderer = window->GetRenderer();
+
+        Vector2 size = window->GetFramebufferSize();
+        m_ViewportSize = size;
+        InitLightmapTarget(static_cast<int>(size.x), static_cast<int>(size.y));
     }
 
-    static void submitItem(RenderItem&& item) { s_Data->queue.push_back(std::move(item)); }
-
-    // --- Renderer Lifecycle ---
-
-    void Renderer::Init(Ref<Window> win) 
+    Renderer::~Renderer()
     {
-        if (!s_Data) {
-            s_Data = new RendererData();
-            s_Data->sdlRenderer = win->GetRenderer();
-            s_Data->window = win;
-            s_Data->transformStack.push_back(Matrix4());
-            PGN_CORE_INFO("Renderer initialized.");
-        }
+        if (m_LightmapTexture)
+            SDL_DestroyTexture(m_LightmapTexture);
     }
 
-    void Renderer::Shutdown() 
+    void Renderer::InitLightmapTarget(int width, int height)
     {
-        if (s_Data) 
-        {
-            delete s_Data;
-            s_Data = nullptr;
-            PGN_CORE_INFO("Renderer Shutdown Successfully...");
-        }
+        if (m_LightmapTexture)
+            SDL_DestroyTexture(m_LightmapTexture);
+
+        m_LightmapTexture = SDL_CreateTexture(
+            m_SDLRenderer,
+            SDL_PIXELFORMAT_RGBA8888,
+            SDL_TEXTUREACCESS_TARGET,
+            width, height
+        );
+
+        SDL_SetTextureBlendMode(m_LightmapTexture, SDL_BLENDMODE_MUL);
     }
 
-    void Renderer::clear() 
+    void Renderer::Clear(Color color)
     {
-        SDL_SetRenderDrawColor(s_Data->sdlRenderer, 0, 0, 0, 255);
-        SDL_RenderClear(s_Data->sdlRenderer);
+        SDL_SetRenderDrawColorFloat(m_SDLRenderer, color.r, color.g, color.b, color.a);
+        SDL_RenderClear(m_SDLRenderer);
     }
 
-    void Renderer::present() { SDL_RenderPresent(s_Data->sdlRenderer); }
-
-    const size_t Renderer::GetDrawCallCount() { return s_Data->frameDrawCalls; }
-
-    // --- Scene Logic ---
-
-    void Renderer::BeginScene(const Camera& camera) { prepareScene(camera.getViewportBounds(), camera.getViewProjection()); }
-    void Renderer::BeginScene()                     { prepareScene({ Vector2::Zero(), s_Data->window->GetWindowSize() }, Matrix4());}
-
-    void Renderer::EndScene() 
+    void Renderer::Present()
     {
-        if (s_Data->queue.empty()) return;
-
-        std::sort(s_Data->queue.begin(), s_Data->queue.end());
-
-        std::vector<SDL_Vertex> bVerts;
-        std::vector<int> bIndices;
-        SDL_Texture* currTex = nullptr;
-
-        auto renderBatch = [&]() {
-            if (bVerts.empty()) return;
-            s_Data->frameDrawCalls++;
-            SDL_SetRenderDrawBlendMode(s_Data->sdlRenderer, SDL_BLENDMODE_BLEND);
-            SDL_RenderGeometry(s_Data->sdlRenderer, currTex, bVerts.data(), (int)bVerts.size(), bIndices.data(), (int)bIndices.size());
-            bVerts.clear(); bIndices.clear();
-        };
-
-        for (const auto& item : s_Data->queue) 
-        {
-            std::visit([&](auto&& cmd) {
-                using T = std::decay_t<decltype(cmd)>;
-
-                if constexpr (std::is_same_v<T, ScissorCommand>) 
-                {
-                    renderBatch(); 
-                    if (cmd.enabled) {
-                        SDL_Rect r = { (int)cmd.rect.x, (int)cmd.rect.y, (int)cmd.rect.w, (int)cmd.rect.h };
-                        SDL_SetRenderClipRect(s_Data->sdlRenderer, &r);
-                    } else {
-                        SDL_SetRenderClipRect(s_Data->sdlRenderer, nullptr);
-                    }
-                } 
-                else 
-                {
-                    SDL_Texture* tex = getCommandTexture(item.command);
-                    if (tex != currTex && !bVerts.empty()) renderBatch();
-                    currTex = tex;
-
-                    int base = (int)bVerts.size();
-                    if constexpr (std::is_same_v<T, SpriteCommand>) 
-                    {
-                        const SDL_Vertex* ptr = reinterpret_cast<const SDL_Vertex*>(cmd.vertices.data());
-                        bVerts.insert(bVerts.end(), ptr, ptr + 4);
-                        for (int idx : cmd.indices) bIndices.push_back(base + idx);
-                    } 
-                    else 
-                    {
-                        const auto& va = cmd.vertexArray;
-                        const SDL_Vertex* ptr = reinterpret_cast<const SDL_Vertex*>(va.getVertices().data());
-                        bVerts.insert(bVerts.end(), ptr, ptr + va.getVertices().size());
-                        for (int idx : va.getIndices()) bIndices.push_back(base + idx);
-                    }
-                }
-            }, item.command);
-        }
-
-        renderBatch();
-        
-        SDL_SetRenderClipRect(s_Data->sdlRenderer, nullptr);
-        s_Data->queue.clear();
-        s_Data->scissorStack.clear();
-        s_Data->transformStack.clear();
-        s_Data->transformStack.push_back(Matrix4());
+        SDL_RenderPresent(m_SDLRenderer);
     }
 
-    // --- State Operations ---
-
-    void Renderer::PushScissor(const FloatRect& rect, int zIndex) 
+    void Renderer::PrepareScene(const FloatRect& bounds, const Matrix4& vpm) 
     {
-        s_Data->nextStateGroupID++;
+        m_ViewProjectionMatrix = vpm;
+        m_CameraBounds = bounds;
+        s_FrameDrawCalls = 0;
+        m_NextStateGroupID = 0;
+
+        m_DiffuseQueue.clear();
+        m_LightQueue.clear();
+        m_ScissorStack.clear();
+
+        m_TransformStack.clear();
+        m_TransformStack.push_back(vpm); // Bottom of stack holds the ViewProjection matrix
+    }
+
+    void Renderer::BeginScene()
+    {
+        PrepareScene({ Vector2::Zero(), m_ViewportSize }, Matrix4());
+    }
+
+    void Renderer::BeginScene(const Camera& camera)
+    {
+        PrepareScene(camera.getViewportBounds(), camera.getViewProjection());
+    }
+
+    void Renderer::PushTransform(const Matrix4& transform)
+    {
+        Matrix4 current = GetCurrentTransform();
+        m_TransformStack.push_back(current * transform);
+    }
+
+    void Renderer::PopTransform()
+    {
+        if (m_TransformStack.size() > 1)
+            m_TransformStack.pop_back();
+    }
+
+    Matrix4 Renderer::GetCurrentTransform() const
+    {
+        if (!m_TransformStack.empty())
+            return m_TransformStack.back();
+        return Matrix4();
+    }
+
+    void Renderer::PushScissor(const FloatRect& rect, int zIndex)
+    {
+        m_NextStateGroupID++;
         FloatRect finalRect = rect;
-        if (!s_Data->scissorStack.empty()) { finalRect = s_Data->scissorStack.back().intersection(rect); }
-        s_Data->scissorStack.push_back(finalRect);
-        submitItem({ zIndex, s_Data->nextStateGroupID, 0, ScissorCommand{finalRect, true} });
-        s_Data->nextStateGroupID++; 
+        if (!m_ScissorStack.empty()) 
+            finalRect = m_ScissorStack.back().intersection(rect);
+
+        m_ScissorStack.push_back(finalRect);
+
+        DrawCommand cmd;
+        cmd.isScissor = true;
+        cmd.scissorRect = finalRect;
+        cmd.scissorEnabled = true;
+        cmd.zIndex = zIndex;
+        cmd.stateGroupID = m_NextStateGroupID++;
+
+        m_DiffuseQueue.push_back(cmd);
     }
 
-    void Renderer::PopScissor(int zIndex) 
+    void Renderer::PopScissor(int zIndex)
     {
-        s_Data->nextStateGroupID++;
-        if (!s_Data->scissorStack.empty()) s_Data->scissorStack.pop_back();
-        ScissorCommand sc = (s_Data->scissorStack.empty()) ? ScissorCommand{{}, false} : ScissorCommand{s_Data->scissorStack.back(), true};
-        submitItem({ zIndex, s_Data->nextStateGroupID, 0, sc});
-        s_Data->nextStateGroupID++;
+        m_NextStateGroupID++;
+        if (!m_ScissorStack.empty()) 
+            m_ScissorStack.pop_back();
+
+        DrawCommand cmd;
+        cmd.isScissor = true;
+        cmd.scissorEnabled = !m_ScissorStack.empty();
+        if (cmd.scissorEnabled)
+            cmd.scissorRect = m_ScissorStack.back();
+
+        cmd.zIndex = zIndex;
+        cmd.stateGroupID = m_NextStateGroupID++;
+
+        m_DiffuseQueue.push_back(cmd);
     }
 
-    void Renderer::PushTransform(const Matrix4& transform) 
+    void Renderer::Submit( const VertexArray& va, Ref<Texture> texture, const Matrix4& transform, int zIndex, RenderPass pass)
     {
-        Matrix4 current = s_Data->transformStack.back();
-        s_Data->transformStack.push_back(current * transform);
-    }
-
-    void Renderer::PopTransform() 
-    {
-        if (s_Data->transformStack.size() > 1) 
-            s_Data->transformStack.pop_back();
-    }
-
-    // --- Drawing Implementations ---
-
-    void Renderer::Submit(const VertexArray& va, Ref<Texture> texture, int zIndex) { Submit(va, texture, Transform2D(), zIndex); }
-
-    void Renderer::Submit(const VertexArray& va, Ref<Texture> texture, const Transform2D& transform, int zIndex) 
-    {
-        if (!va.getBounds().intersects(s_Data->cameraBounds)) return; 
-    
         const auto& localVertices = va.getVertices();
-        if (localVertices.empty()) return;
+        const auto& localIndices = va.getIndices();
+        if (localVertices.empty() || localIndices.empty()) return;
 
-        GeometryCommand cmd;
+        // 1. Calculate World Model Matrix
+        Matrix4 worldModel = GetCurrentTransform() * transform;
+
+        // 2. Transform local bounds into World Space for Culling
+        FloatRect worldBounds = transformRect(va.getBounds(), worldModel);
+        if (!worldBounds.intersects(m_CameraBounds)) 
+            return; // Correctly culled only when outside camera bounds
+
+        // 3. Combine with View-Projection matrix for final screen transformation
+        Matrix4 mvp = m_ViewProjectionMatrix * worldModel;
+
+        DrawCommand cmd;
         cmd.texture = texture ? texture->getSDLTexture() : nullptr;
-        const Matrix4 globalModel = s_Data->transformStack.back() * transform.GetModelMatrix();
+        cmd.zIndex = zIndex;
+        cmd.stateGroupID = m_NextStateGroupID;
+        cmd.indices = localIndices;
 
-        cmd.vertexArray.reserve(localVertices.size(), va.getIndices().size());
-        cmd.vertexArray.getIndices() = va.getIndices(); 
-
-        for (const auto& v : localVertices) 
-            cmd.vertexArray.addVertex({ transformPoint(v.position, globalModel), v.color, v.tex_coord });
-
-        submitItem({ zIndex, s_Data->nextStateGroupID, reinterpret_cast<uintptr_t>(cmd.texture), std::move(cmd) });
-    }
-
-    void Renderer::Submit(const Sprite& sprite) 
-    {
-        if (!sprite.getGlobalBounds().intersects(s_Data->cameraBounds)) return; 
-        auto texPtr = sprite.getTexture().lock(); 
-        if (!texPtr) return;
-
-        const auto& t = sprite.getTransform();
-        const auto& src = sprite.getTextureRect();
-        const Color color = sprite.getColor();
-        const Matrix4 globalModel = s_Data->transformStack.back() * t.GetModelMatrix();
-    
-        float tw, th;
-        SDL_GetTextureSize(texPtr->getSDLTexture(), &tw, &th);
-        float u0 = src.x / tw, v0 = src.y / th;
-        float u1 = (src.x + src.w) / tw, v1 = (src.y + src.h) / th;
-
-        SpriteCommand cmd;
-        cmd.texture = texPtr->getSDLTexture();
-        cmd.vertices = {
-            Vertex{ transformPoint({-t.origin.x, -t.origin.y}, globalModel), color, {u0, v0} },
-            Vertex{ transformPoint({-t.origin.x + src.w, -t.origin.y}, globalModel), color, {u1, v0} },
-            Vertex{ transformPoint({-t.origin.x + src.w, -t.origin.y + src.h}, globalModel), color, {u1, v1} },
-            Vertex{ transformPoint({-t.origin.x, -t.origin.y + src.h}, globalModel), color, {u0, v1} }
-        };
-        cmd.indices = { 0, 1, 2, 2, 3, 0 };
-
-        submitItem({ sprite.getZIndex(), s_Data->nextStateGroupID, reinterpret_cast<uintptr_t>(cmd.texture), std::move(cmd) });
-    }
-
-    void Renderer::Submit(const Text& text) 
-    {
-        if (!text.getGlobalBounds().intersects(s_Data->cameraBounds)) return; 
-
-        const auto& localVertices = text.getVertices(); 
-        SDL_Texture* atlas = text.getAtlasTexture();
-        if (localVertices.empty() || !atlas) return;
-
-        const auto& t = text.getTransform();
-        const Matrix4 globalModel = s_Data->transformStack.back() * t.GetModelMatrix();
-        const Color color = text.getColor();
-
-        TextCommand cmd;
-        cmd.fontAtlas = atlas;
-        cmd.vertexArray.reserve(localVertices.size(), text.getIndices().size());
-        cmd.vertexArray.getIndices() = text.getIndices(); 
-
-        for (const auto& v : localVertices) 
+        // 4. Project local vertices to screen coordinates
+        cmd.vertices.reserve(localVertices.size());
+        for (const auto& v : localVertices)
         {
-            Vector2 localPos = v.position - t.origin;
-            cmd.vertexArray.addVertex({ transformPoint(localPos, globalModel), color, v.tex_coord });
+            Vector2 p = transformPoint(v.position, mvp);
+            cmd.vertices.push_back(SDL_Vertex{
+                { p.x, p.y },
+                { v.color.r, v.color.g, v.color.b, v.color.a },
+                { v.texCoords.x, v.texCoords.y }
+            });
         }
 
-        submitItem({ text.getZIndex(), s_Data->nextStateGroupID, reinterpret_cast<uintptr_t>(atlas), std::move(cmd) });
+        if (pass == RenderPass::Diffuse)
+            m_DiffuseQueue.push_back(std::move(cmd));
+        else if (pass == RenderPass::Light)
+            m_LightQueue.push_back(std::move(cmd));
     }
 
-    void Renderer::Submit(const RectangleShape& shape) 
+    void Renderer::Flush()
     {
-        if (!shape.getGlobalBounds().intersects(s_Data->cameraBounds)) return; 
+        auto processCommandQueue = [this](std::vector<DrawCommand>& queue) {
+            if (queue.empty()) return;
 
-        const auto& t = shape.getTransform();
-        const Vector2 size = shape.getSize();
-        const Matrix4 globalModel = s_Data->transformStack.back() * t.GetModelMatrix();
-        const Color color = shape.getColor();
+            // Sort by Z-Index, then by State Group ID
+            std::sort(queue.begin(), queue.end(), [](const DrawCommand& a, const DrawCommand& b) {
+                if (a.zIndex != b.zIndex)
+                    return a.zIndex < b.zIndex;
+                return a.stateGroupID < b.stateGroupID;
+            });
 
-        GeometryCommand cmd;
-        cmd.texture = nullptr;
+            std::vector<SDL_Vertex> bVerts;
+            std::vector<int> bIndices;
+            SDL_Texture* currTex = nullptr;
 
-        auto addQuad = [&](Vector2 p, Vector2 s) {
-            int base = (int)cmd.vertexArray.getVertices().size();
-            cmd.vertexArray.addIndex(base);     cmd.vertexArray.addIndex(base + 1); cmd.vertexArray.addIndex(base + 2);
-            cmd.vertexArray.addIndex(base + 2); cmd.vertexArray.addIndex(base + 3); cmd.vertexArray.addIndex(base);
+            auto renderBatch = [&]() {
+                if (bVerts.empty()) return;
+                s_FrameDrawCalls++;
+                SDL_SetRenderDrawBlendMode(m_SDLRenderer, SDL_BLENDMODE_BLEND);
+                SDL_RenderGeometry(
+                    m_SDLRenderer,
+                    currTex,
+                    bVerts.data(), static_cast<int>(bVerts.size()),
+                    bIndices.data(), static_cast<int>(bIndices.size())
+                );
+                bVerts.clear();
+                bIndices.clear();
+            };
 
-            cmd.vertexArray.addVertex({ transformPoint(p - t.origin, globalModel), color, {0,0} });
-            cmd.vertexArray.addVertex({ transformPoint({p.x + s.x - t.origin.x, p.y - t.origin.y}, globalModel), color, {0,0} });
-            cmd.vertexArray.addVertex({ transformPoint(p + s - t.origin, globalModel), color, {0,0} });
-            cmd.vertexArray.addVertex({ transformPoint({p.x - t.origin.x, p.y + s.y - t.origin.y}, globalModel), color, {0,0} });
-        };
-
-        if (shape.isFilled()) addQuad({0, 0}, size);
-        else {
-            float th = shape.getOutlineThickness();
-            addQuad({0, 0}, {size.x, th});
-            addQuad({0, size.y - th}, {size.x, th});
-            addQuad({0, th}, {th, size.y - 2*th});
-            addQuad({size.x - th, th}, {th, size.y - 2*th});
-        }
-
-        submitItem({ shape.getZIndex(), s_Data->nextStateGroupID, 0, std::move(cmd) });
-    }
-
-    void Renderer::Submit(const CircleShape& shape) 
-    {
-        if (!shape.getGlobalBounds().intersects(s_Data->cameraBounds)) return; 
-        
-        const auto& t = shape.getTransform();
-        const float radius = shape.getRadius();
-        const Color color = shape.getColor();
-        const Matrix4 globalModel = s_Data->transformStack.back() * t.GetModelMatrix();
-
-        GeometryCommand cmd;
-        cmd.texture = nullptr;
-        const int segments = 64; 
-
-        if (shape.isFilled()) 
-        {
-            cmd.vertexArray.addVertex({ transformPoint({0, 0}, globalModel), color, {0.5f, 0.5f} });
-            for (int i = 0; i <= segments; i++) 
+            for (const auto& cmd : queue)
             {
-                float theta = i * 2.0f * Math::PI / segments;
-                Vector2 localPos = { radius * Math::Cos(theta), radius * Math::Sin(theta) };
-                Vector2 uv = { (Math::Cos(theta) + 1.0f) * 0.5f, (Math::Sin(theta) + 1.0f) * 0.5f };
-                cmd.vertexArray.addVertex({ transformPoint(localPos, globalModel), color, uv });
-                if (i < segments) {
-                    cmd.vertexArray.addIndex(0);
-                    cmd.vertexArray.addIndex(i + 1);
-                    cmd.vertexArray.addIndex(i + 2);
+                if (cmd.isScissor)
+                {
+                    renderBatch();
+                    if (cmd.scissorEnabled) {
+                        SDL_Rect r = { static_cast<int>(cmd.scissorRect.x), static_cast<int>(cmd.scissorRect.y), static_cast<int>(cmd.scissorRect.w), static_cast<int>(cmd.scissorRect.h) };
+                        SDL_SetRenderClipRect(m_SDLRenderer, &r);
+                    } else {
+                        SDL_SetRenderClipRect(m_SDLRenderer, nullptr);
+                    }
+                }
+                else
+                {
+                    if (cmd.texture != currTex && !bVerts.empty())
+                        renderBatch();
+
+                    currTex = cmd.texture;
+                    int base = static_cast<int>(bVerts.size());
+
+                    bVerts.insert(bVerts.end(), cmd.vertices.begin(), cmd.vertices.end());
+                    for (int idx : cmd.indices)
+                    {
+                        bIndices.push_back(base + idx);
+                    }
                 }
             }
-        } 
-        else 
+
+            renderBatch();
+            SDL_SetRenderClipRect(m_SDLRenderer, nullptr);
+        };
+
+        // -------------------------------------------------------------
+        // PASS 1: Render Lightmap Offscreen
+        // -------------------------------------------------------------
+        if (!m_LightQueue.empty())
         {
-            float thickness = shape.getOutlineThickness();
-            for (int i = 0; i <= segments; i++) 
-            {
-                float theta = i * 2.0f * Math::PI / segments;
-                float cosT = Math::Cos(theta); float sinT = Math::Sin(theta);
-                Vector2 outerP = { radius * cosT, radius * sinT };
-                Vector2 innerP = { (radius - thickness) * cosT, (radius - thickness) * sinT };
+            SDL_SetRenderTarget(m_SDLRenderer, m_LightmapTexture);
 
-                cmd.vertexArray.addVertex({ transformPoint(innerP, globalModel), color, {0,0} }); 
-                cmd.vertexArray.addVertex({ transformPoint(outerP, globalModel), color, {0,0} }); 
+            SDL_SetRenderDrawColorFloat(
+                m_SDLRenderer, 
+                m_AmbientLight.r, 
+                m_AmbientLight.g, 
+                m_AmbientLight.b, 
+                1.0f
+            );
+            SDL_RenderClear(m_SDLRenderer);
 
-                if (i < segments) {
-                    int base = i * 2;
-                    cmd.vertexArray.addIndex(base);     cmd.vertexArray.addIndex(base + 1); cmd.vertexArray.addIndex(base + 2);
-                    cmd.vertexArray.addIndex(base + 1); cmd.vertexArray.addIndex(base + 3); cmd.vertexArray.addIndex(base + 2);
-                }
-            }
+            SDL_SetRenderDrawBlendMode(m_SDLRenderer, SDL_BLENDMODE_ADD);
+
+            processCommandQueue(m_LightQueue);
+
+            SDL_SetRenderTarget(m_SDLRenderer, nullptr);
         }
-        submitItem({ shape.getZIndex(), s_Data->nextStateGroupID, 0, std::move(cmd) });
+
+        // -------------------------------------------------------------
+        // PASS 2: Render Diffuse Scene Geometry
+        // -------------------------------------------------------------
+        processCommandQueue(m_DiffuseQueue);
+
+        // -------------------------------------------------------------
+        // PASS 3: Composite Multiplicative Lightmap Over Diffuse Scene
+        // -------------------------------------------------------------
+        if (!m_LightQueue.empty())
+        {
+            SDL_RenderTexture(m_SDLRenderer, m_LightmapTexture, nullptr, nullptr);
+        }
+
+        m_DiffuseQueue.clear();
+        m_LightQueue.clear();
     }
 
-    void Renderer::Submit(const LineShape& shape) 
+    void Renderer::EndScene()
     {
-        if (!shape.getGlobalBounds().intersects(s_Data->cameraBounds)) return;
-
-        const auto& t = shape.getTransform();
-        const Matrix4 globalModel = s_Data->transformStack.back() * t.GetModelMatrix();
-        const Color color = shape.getColor();
-        Vector2 p1 = shape.getPoint1() - t.origin;
-        Vector2 p2 = shape.getPoint2() - t.origin;
-
-        Vector2 dir = p2 - p1;
-        if (dir.LengthSquared() < 0.001f) return;
-
-        Vector2 normal = Vector2{-dir.y, dir.x}.Normalize();
-        float halfThickness = Math::Max(shape.getOutlineThickness(), 1.0f) * 0.5f;
-        Vector2 offset = normal * halfThickness;
-
-        GeometryCommand cmd;
-        cmd.texture = nullptr;
-        cmd.vertexArray.addIndex(0); cmd.vertexArray.addIndex(1); cmd.vertexArray.addIndex(2);
-        cmd.vertexArray.addIndex(2); cmd.vertexArray.addIndex(3); cmd.vertexArray.addIndex(0);
-        
-        cmd.vertexArray.addVertex({ transformPoint(p1 + offset, globalModel), color, {0,0} });
-        cmd.vertexArray.addVertex({ transformPoint(p2 + offset, globalModel), color, {0,0} });
-        cmd.vertexArray.addVertex({ transformPoint(p2 - offset, globalModel), color, {0,0} });
-        cmd.vertexArray.addVertex({ transformPoint(p1 - offset, globalModel), color, {0,0} });
-
-        submitItem({ shape.getZIndex(), s_Data->nextStateGroupID, 0, std::move(cmd) });
+        Flush();
     }
 }

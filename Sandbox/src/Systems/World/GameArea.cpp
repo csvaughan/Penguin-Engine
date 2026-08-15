@@ -42,12 +42,12 @@ void AreaSystem::OnUpdate(pgn::Timestep ts)
     // Handle logic like NPC triggers or animated tiles here
 }
 
-void AreaSystem::OnRender(float alpha) 
+void AreaSystem::OnRender(float alpha, pgn::Renderer& renderer) 
 {
     if (!m_currentMap) return;
 
     for (const auto& v :m_currentMap->GetVisibleViews(m_camera.getViewport()))
     {
-        pgn::Renderer::Submit(v.va, v.texture, v.zIndex);
+        renderer.Submit(v.va, v.texture, pgn::Matrix4(), v.zIndex);
     }
 }

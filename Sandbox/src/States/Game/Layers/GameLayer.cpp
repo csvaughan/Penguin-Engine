@@ -182,21 +182,21 @@ void GameLayer::OnUpdate(pgn::Timestep ts)
     m_camera.onUpdate(ts.GetSeconds()); 
 }
 
-void GameLayer::OnRender(float alpha)
+void GameLayer::OnRender(float alpha, pgn::Renderer& renderer)
 {
-    pgn::Renderer::BeginScene(m_camera.getCamera()); 
+    renderer.BeginScene(m_camera.getCamera()); 
 
     // Render debug shapes overlay (colliders, contact points, etc.)
-    m_world.OnRender(alpha); 
+    m_world.OnRender(alpha, renderer); 
     
-    pgn::Renderer::Submit(rect); 
-    pgn::Renderer::Submit(rect2); 
-    pgn::Renderer::Submit(circle); 
-    pgn::Renderer::Submit(circle2);
-    pgn::Renderer::Submit(circle3); 
-    pgn::Renderer::Submit(sprite); 
-    pgn::Renderer::Submit(line); 
-    pgn::Renderer::Submit(text); 
+    rect.render(renderer);
+    rect2.render(renderer);
+    circle.render(renderer);
+    circle2.render(renderer);
+    circle3.render(renderer);
+    sprite.render(renderer); 
+    line.render(renderer); 
+    text.render(renderer); 
 
-    pgn::Renderer::EndScene(); 
+    renderer.EndScene(); 
 }

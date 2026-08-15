@@ -10,7 +10,7 @@ public:
     void OnEnter() override;
     void OnEvent(pgn::Event& e) override;
     void OnUpdate(pgn::Timestep ts) override;
-    void OnRender(float alpha) override;
+    void OnRender(float alpha, pgn::Renderer& renderer) override;
 
 private:
     pgn::GUI::UIManager m_uiManager; 

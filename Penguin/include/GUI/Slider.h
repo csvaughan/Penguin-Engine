@@ -33,7 +33,7 @@ namespace pgn::GUI {
 
     private:
             
-        void OnRender(float alpha) override;
+        void OnRender(float alpha, Renderer& renderer) override;
         void OnUpdate(Timestep ts) override;
         bool OnEvent(Event& e) override;
 

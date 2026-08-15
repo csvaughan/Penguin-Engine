@@ -5,6 +5,7 @@
 namespace pgn
 {
     class State;
+    class Renderer;
 
     class Layer : private ISystem, public RefCounted
     {
@@ -18,8 +19,8 @@ namespace pgn
     protected:
 
         virtual void OnUpdate(Timestep) override {} 
-        virtual void OnRender(float alpha) override {}
-        virtual void OnEnter() override{}
+        virtual void OnRender(float alpha, Renderer& renderer) override {}
+        virtual void OnEnter() override {}
         virtual void OnExit() override {}
 
         using ISystem::GetName;

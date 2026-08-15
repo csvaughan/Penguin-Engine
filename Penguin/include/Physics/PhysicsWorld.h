@@ -34,7 +34,7 @@ namespace pgn
 
         void OnEvent(Event& e) override;
         void OnUpdate(Timestep ts) override;
-        void OnRender(float alpha) override;
+        void OnRender(float alpha, Renderer& renderer) override;
 
         void EnableDebugMode(bool enabled) { m_isDebugOn = enabled; }
         bool IsDebugEnabled() const { return m_isDebugOn; }
@@ -66,9 +66,9 @@ namespace pgn
 
         bool PrepareBaseJointDef(b2JointDef& base, PhysicsBody* bodyA, PhysicsBody* bodyB, Vector2 anchorA, Vector2 anchorB);
         
-        void DrawDebug();
-        void DrawBodies(b2DebugDraw& debugDraw);  
-        void DrawColliders(b2DebugDraw& debugDraw);
+        void DrawDebug(Renderer& renderer);
+        void DrawBodies(b2DebugDraw& debugDraw, Renderer& renderer);  
+        void DrawColliders(b2DebugDraw& debugDraw, Renderer& renderer);
 
         bool m_isPaused = false;
         bool m_isDebugOn = true;

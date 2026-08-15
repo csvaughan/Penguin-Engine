@@ -3,7 +3,7 @@
 #include "Memory/Ref.h"
 #include "Core/Timestep.h"
 
-namespace pgn {class Event;}
+namespace pgn {class Event; class Renderer; }
 
 namespace pgn::GUI {
 
@@ -35,7 +35,7 @@ namespace pgn::GUI {
         void RemoveElement(UIElementID id);
 
         void OnUpdate(Timestep dt);
-        void OnRender(float alpha);
+        void OnRender(float alpha, Renderer& renderer);
         bool OnEvent(Event& e);
         
         void SetSize(Vector2 size);

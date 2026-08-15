@@ -34,7 +34,7 @@ namespace pgn
             #endif
         }
         
-        void OnRender(float alpha) final override
+        void OnRender(float alpha, Renderer& renderer) final override
         {
             #ifdef PGN_DEBUG
             OnImGuiRender();

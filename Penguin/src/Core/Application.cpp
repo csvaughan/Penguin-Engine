@@ -1,6 +1,5 @@
 #include "Core/Application.h"
 #include "Core/Input.h"
-#include "Log/Log.h"
 #include "Core/State.h"
 #include "Core/Timestep.h"
 #include "Events/EngineEvents.h"
@@ -8,6 +7,8 @@
 #include "Events/EventBus.h"
 #include "Renderer/Renderer.h"
 #include "Math/Random.h"
+#include "Memory/Scope.h"
+#include "Log/Log.h"
 #include <SDL3/SDL.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
@@ -53,7 +54,7 @@ namespace pgn
 		if (!m_Window->SetIcon(m_Specification.WindowIconPath))
 			PGN_CORE_WARN("No icon found at path: {}. Window icon not set.", m_Specification.WindowIconPath);
 
-		Renderer::Init(m_Window);
+		m_Renderer = CreateScope<Renderer>(m_Window);
 
 		#ifdef PGN_DEBUG
 			IMGUI_CHECKVERSION();
@@ -84,7 +85,6 @@ namespace pgn
 
 		m_AssetManager.Shutdown();
 		AudioSystem::Shutdown();
-		Renderer::Shutdown();
 		m_Window->Destroy();
 		SDL_Quit();
 		s_Application = nullptr;
@@ -144,7 +144,7 @@ namespace pgn
 					accumulator -= fixedDeltaTime;
 				}
 
-				Renderer::clear();
+				m_Renderer->Clear();
 
 			#ifdef PGN_DEBUG
 				// Start ImGui Frame
@@ -154,7 +154,7 @@ namespace pgn
 			#endif
 
 				float alpha = accumulator / fixedDeltaTime;
-				m_ActiveState->OnRender(alpha); 
+				m_ActiveState->OnRender(alpha, *m_Renderer.get()); 
 
 			#ifdef PGN_DEBUG
 				// Render ImGui
@@ -162,7 +162,8 @@ namespace pgn
 				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), m_Window->GetRenderer());
 			#endif
 
-				Renderer::present();
+				
+				m_Renderer->Present();
 			}
 
 			Input::OnUpdate();

@@ -8,6 +8,7 @@ namespace pgn
     class Layer;
     class Event;
     class AppQuitEvent;
+    class Renderer;
 
     class LayerStack
     {
@@ -22,7 +23,7 @@ namespace pgn
         void applyPendingChanges();
 
         void update(Timestep ts);
-        void render(float alpha);
+        void render(float alpha, Renderer& renderer);
         void handleEvent(Event& event);
 
         void broadcastShutdown(AppQuitEvent& e);

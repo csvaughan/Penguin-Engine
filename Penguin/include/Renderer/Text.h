@@ -33,10 +33,11 @@ namespace pgn {
         const Ref<Font> getFont() const;
         const std::vector<Vertex>& getVertices() const      { if (m_isDirty) { recalculateGeometry(); } return m_vertices; }
         const std::vector<int>& getIndices() const          { if (m_isDirty) { recalculateGeometry(); } return m_indices; }
-        SDL_Texture* getAtlasTexture() const;
 
         // --- Bounds Logic ---
         FloatRect getLocalBounds() const override;
+
+        void render(Renderer& renderer) const override;
 
     private:
         void recalculateGeometry() const;

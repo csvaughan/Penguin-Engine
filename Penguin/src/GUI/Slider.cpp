@@ -148,12 +148,12 @@ namespace pgn::GUI {
             UpdateHandlePosition();
     }
 
-    void Slider::OnRender(float alpha)
+    void Slider::OnRender(float alpha, Renderer& renderer)
     {
         if (!m_visible) return;
 
         // 1. Renders Background (Z) and Optional Image (Z + 1)
-        Panel::OnRender(alpha);
+        Panel::OnRender(alpha, renderer);
 
         // 2. Safely layer the Slider components above the Panel's components
         m_fillBar.setZIndex(m_zIndex + 2);
@@ -163,12 +163,12 @@ namespace pgn::GUI {
         if (m_hasFill && m_value > 0.0f)
         {
             m_fillBar.setColor(m_fillColor);
-            Renderer::Submit(m_fillBar);
+            m_fillBar.render(renderer);
         }
 
         // 4. Render Handle
         m_handle.setColor(m_handleColor);
-        Renderer::Submit(m_handle);
+        m_handle.render(renderer);
     }
 
     bool Slider::OnEvent(Event& e)

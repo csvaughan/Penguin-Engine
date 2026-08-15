@@ -32,7 +32,7 @@ void GameUILayer::OnUpdate(pgn::Timestep ts)
     m_uiManager.OnUpdate(ts); 
 }
 
-void GameUILayer::OnRender(float alpha)
+void GameUILayer::OnRender(float alpha, pgn::Renderer& renderer)
 { 
-    m_uiManager.OnRender(alpha);
+    m_uiManager.OnRender(alpha, renderer);
 }

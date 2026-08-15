@@ -6,6 +6,7 @@
 
 namespace pgn
 {
+    class Renderer;
     const int MAX_ZINDEX = INT_MAX;
     const int MIN_ZINDEX = INT_MIN;
 
@@ -14,6 +15,8 @@ namespace pgn
     public:
         Renderable() = default;
         virtual ~Renderable() = default;
+
+        virtual void render(Renderer& renderer) const = 0;
         
         void setTransform(Transform2D t)        { m_transform = t; }
         void setPosition(float x, float y)      { m_transform.position = { x, y }; }

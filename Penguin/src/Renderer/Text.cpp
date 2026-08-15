@@ -1,4 +1,5 @@
 #include "Renderer/Text.h"
+#include "Renderer/Renderer.h"
 #include "Asset/Font.h"
 
 namespace pgn
@@ -8,12 +9,6 @@ namespace pgn
     const Ref<Font> Text::getFont() const { return m_font.lock(); }
     
     void Text::setFont(Ref<Font> font) { m_font = font; m_isDirty = true; }
-
-    SDL_Texture *Text::getAtlasTexture() const
-    {
-        auto font = m_font.lock(); 
-        return font ? font->getAtlasTexture() : nullptr;
-    }
 
     FloatRect Text::getLocalBounds() const 
     {
@@ -98,5 +93,27 @@ namespace pgn
             // Always advance the cursor, even for spaces
             cursorX += glyph.advance * m_letterSpacingFactor;
         }
+    }
+
+    void Text::render(Renderer& renderer) const
+    {
+        const auto& localVertices = getVertices();
+        Ref<Texture> fontAtlas = m_font.lock()->getAtlasTexture();
+        if (localVertices.empty() || !fontAtlas) return;
+
+        const auto& t = getTransform();
+        const Color color = getColor();
+
+        VertexArray va;
+        va.getIndices() = getIndices();
+        va.reserve(localVertices.size(), getIndices().size());
+
+        for (const auto& v : localVertices)
+        {
+            Vector2 localPos = v.position - t.origin;
+            va.addVertex({ localPos, color, v.texCoords });
+        }
+
+        renderer.Submit(va, fontAtlas, t.GetModelMatrix(), getZIndex(), RenderPass::Diffuse);
     }
 } // namespace pgn

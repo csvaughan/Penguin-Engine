@@ -24,7 +24,7 @@ namespace pgn::GUI {
 
     private:
         void OnUpdate(Timestep ts) override;
-        void OnRender(float alpha) override;
+        void OnRender(float alpha, Renderer& renderer) override;
         bool OnEvent(Event& e) override { return false; } 
         
     private:

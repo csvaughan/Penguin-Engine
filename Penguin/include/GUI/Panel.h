@@ -16,7 +16,7 @@ namespace pgn::GUI {
         void SetTexture(Ref<Texture> texture);
 
         virtual void OnUpdate(Timestep ts) override;
-        virtual void OnRender(float alpha) override;
+        virtual void OnRender(float alpha, Renderer& renderer) override;
         virtual bool OnEvent(Event& e) override;
 
     protected:

@@ -75,7 +75,7 @@ namespace pgn
         
         void OnEvent(Event& e) final override;
         void OnUpdate(Timestep dt) final override;
-        void OnRender(float alpha) final override;
+        void OnRender(float alpha, Renderer& renderer) final override;
 
         //Private helpers
         Ref<Layer> getLayer(const std::string& name);
