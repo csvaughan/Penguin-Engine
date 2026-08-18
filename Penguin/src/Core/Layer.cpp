@@ -1,10 +1,11 @@
 #include "Core/Layer.h"
 #include "Core/State.h"
+#include "Log/Log.h"
 
 namespace pgn
 {
     Layer::Layer(const std::string &name, bool transparent)
-    : ISystem(name), m_parentState(nullptr), m_isEnabled(transparent)
+    : BaseSystem(name), m_parentState(nullptr), m_isEnabled(transparent)
     {
         PGN_CORE_INFO("Layer {} created.(Layer Transparentcy set to {}.)", name, (m_isEnabled) ? "True" : "False");
     }

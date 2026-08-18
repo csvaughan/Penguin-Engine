@@ -1,219 +1,107 @@
 #include "Asset/AssetManager.h"
-#include "Asset/Texture.h"
-#include "Asset/Font.h"
-#include "Asset/Audio.h"
-#include "Math/MathUtils.h"
-#include <SDL3/SDL_render.h>
+#include "Asset/AssetImporter.h"
+#include "Renderer/Texture.h" 
+#include "Renderer/Font.h"    
+#include "Audio/Audio.h"  
+#include "Log/Log.h"  
 
-namespace pgn {
+namespace pgn 
+{
 
-    // Generic Search
-    template <typename T>
-    inline bool searchLibrary(
-        std::unordered_map<std::string, WeakRef<T>>& map, 
-        std::unordered_map<std::string, Ref<T>>& cache, 
-        const std::string& cacheKey,
-        const std::string& id)
+    void AssetManager::logNoImporterError(const char* typeName) 
     {
-        // 1. ID check
-        if (map.find(id) != map.end()) return true;
-
-        // 2. Cache check
-        auto it = cache.find(cacheKey);
-        if (it != cache.end()) 
-        {
-            map[id] = it->second;
-            PGN_CORE_INFO("Resource linked from cache: {}", id);
-            return true;
-        }
-        return false;
+        PGN_CORE_ERROR("Asset Error: No importer registered for type {}", typeName);
     }
 
-    std::filesystem::path AssetManager::resolvePath(const std::string &filename)
+    void AssetManager::logFileNotFoundError(const std::string& id, const std::string& path) 
+    {
+        PGN_CORE_ERROR("Asset Load Failed [{}]: File not found at {}", id, path);
+    }
+
+    void AssetManager::logNullAssetError(const std::string& id, const std::string& path) 
+    {
+        PGN_CORE_ERROR("Asset Load Failed [{}]: Importer returned null for {}", id, path);
+    }
+
+    void AssetManager::logAssetLoadedInfo(const std::string& id, const std::string& path) 
+    {
+        PGN_CORE_INFO("Asset Loaded [{}]: {}", id, path);
+    }
+
+    void AssetManager::logAssetExceptionError(const std::string& id, const char* what) 
+    {
+        PGN_CORE_ERROR("Asset Load Exception [{}]: {}", id, what);
+    }
+
+    void AssetManager::logAssetNotFoundError(const std::string& id) 
+    {
+        PGN_CORE_ERROR("Asset Not Found: {}", id);
+    }
+
+    std::filesystem::path AssetManager::resolvePath(const std::string& filename) 
     {
         return m_resourcePath / filename;
     }
 
-    void pgn::AssetManager::loadDefaults()
+    void AssetManager::loadDefaults() 
     {
-        loadTexture("debug_texture", ENGINE_ASSET_PATH + std::string("textures/error_texture.png"));
-        loadFont("default_font", ENGINE_ASSET_PATH + std::string("fonts/PixelatedEleganceRegular-ovyAA.ttf"), 25);
+        // Default assets are loaded using standard generic interface
+        load<Texture>("debug_texture", "textures/error_texture.png");
+        load<Font>("default_font", "fonts/PixelatedEleganceRegular-ovyAA.ttf");
     }
 
-    void AssetManager::clearAllAssets()
+    void AssetManager::Init(SDL_Renderer* renderer, const std::string& resourcePath) 
     {
-        clearTextures();
-        clearFonts();
-        clearAudio();
-        loadDefaults();
-        PGN_CORE_INFO("AssetManager: All assets cleared.");
-    }
+        m_renderer = renderer;
+        m_resourcePath = resourcePath;
 
-    void AssetManager::Init(SDL_Renderer *renderer, const std::string &resourcPath)
-    {
-        m_renderer = renderer; 
-        m_resourcePath = resourcPath;
-           
-        PGN_ASSERT(!m_resourcePath.empty(),"AssetManager resource path must be set before loading assets.");
+        PGN_ASSERT(!m_resourcePath.empty(), "AssetManager resource path must be set before loading assets.");
 
         if (!std::filesystem::exists(m_resourcePath)) 
             PGN_CORE_ERROR("Resource Path does not exist: {}", m_resourcePath.string());
 
+        // Register default importers with required subsystem pointers
+        registerImporter<Texture, TextureImporter>(m_renderer);
+        registerImporter<Font, FontImporter>(m_renderer, 25.0f);
+        registerImporter<Music, MusicImporter>(); // Music
+        registerImporter<SoundEffect, SoundEffectImporter>(); // Sound Effects
+
         loadDefaults();
-        
+
         PGN_CORE_INFO("Resource Path set to: {}", m_resourcePath.string());
-        PGN_CORE_INFO("Asset Manager Initilized.");    
+        PGN_CORE_INFO("AssetManager Initialized with Importer Registry.");
     }
 
-    void AssetManager::Shutdown()
-    {   
-        // Clear the strong references (the cache)
-        m_textureCache.clear();
-        m_fontCache.clear();
-        m_audioCache.clear();
-        
-        // Clear the weak references just to be clean
-        m_textures.clear();
-        m_fonts.clear();
-        m_audio.clear();
-        
+    void AssetManager::Shutdown() 
+    {
+        m_assets.clear();
+        m_importers.clear();
         m_renderer = nullptr;
-        PGN_CORE_INFO("AssetManager Shutdown Successfully...");
+        PGN_CORE_INFO("AssetManager Shutdown Successfully.");
     }
 
-    // --- Texture Implementation ---
-    void AssetManager::loadTexture(const std::string& id, const std::string& filename) 
+    bool AssetManager::has(const std::string& id) const 
     {
-        if (!m_renderer) return;
-
-        std::filesystem::path path = resolvePath(filename);
-        std::string cacheKey = path.string(); // Texture key is just the path
-
-        // Check Lib/Cache
-        if (searchLibrary(m_textures, m_textureCache, cacheKey, id)) return;
-
-        // Load
-        try {
-            if (!std::filesystem::exists(path)) throw std::runtime_error("File not found");
-            
-            auto res = CreateRef<Texture>(m_renderer, path);
-            m_textures[id] = res;
-            m_textureCache[cacheKey] = res;
-            PGN_CORE_INFO("Texture Loaded: {}", cacheKey);
-        }
-        catch (const std::exception& e) {
-            PGN_CORE_ERROR("ASSET ERROR: Failed to load texture '{}': {}. Using default.", id, e.what());
-            m_textures[id] = m_textures["default_error"];
-        }
+        return m_assets.find(id) != m_assets.end();
     }
 
-    Ref<Texture> AssetManager::getTexture(const std::string& id) 
+    bool AssetManager::remove(const std::string& id) 
     {
-        auto it = m_textures.find(id);
-        if (it == m_textures.end()) 
+        auto it = m_assets.find(id);
+        if (it == m_assets.end()) 
         {
-            PGN_CORE_ERROR("ASSET ERROR: Texture ID {} not found. Using default.", id);
-            return m_textures["default_error"].lock();
+            PGN_CORE_WARN("Asset Warning: Attempted to remove non-existent ID: {}", id); 
+            return false;
         }
-        return it->second.lock();
+        m_assets.erase(it);
+        PGN_CORE_INFO("Asset Removed: {}", id);
+        return true;
     }
 
-    void AssetManager::removeTexture(const std::string &id)
+    void AssetManager::clearAll() 
     {
-        if (m_textures.erase(id) == 0) 
-            PGN_CORE_WARN("Asset Warning: Attempted to remove non-existent texture ID: {}", id);
-    } 
-    
-    
-    // --- Font Implementation ---
-    void AssetManager::loadFont(const std::string& id, const std::string& filename, float ptSize) 
-    {
-        if (!m_renderer) return;
-
-        std::filesystem::path path = resolvePath(filename);
-
-        std::string cacheKey = std::format("{}_{:.1f}", path.string(), ptSize);
-
-        if (searchLibrary(m_fonts, m_fontCache, cacheKey, id)) return;
-
-        try {
-            if (!std::filesystem::exists(path)) throw std::runtime_error("File not found");
-
-            auto res = CreateRef<Font>(m_renderer, path.string(), ptSize);
-
-            m_fonts[id] = res;
-            m_fontCache[cacheKey] = res;
-            PGN_CORE_INFO("Font '{}' Loaded: {}", id, cacheKey);
-        }
-        catch (const std::exception& e) {
-            PGN_CORE_ERROR("ASSET ERROR: Failed to load font '{}': {}", id, e.what());
-        }
-    }
-
-    Ref<Font> AssetManager::getFont(const std::string& id) 
-    {
-        auto it = m_fonts.find(id);
-        if (it == m_fonts.end()) 
-        {
-            PGN_CORE_ERROR("ASSET ERROR: Font not found: {}", id);
-            return nullptr; 
-        }
-        return it->second.lock();
-    }
-
-    void AssetManager::removeFont(const std::string &id)
-    {
-        if (m_fonts.erase(id) == 0) 
-            PGN_CORE_WARN("Asset Warning: Attempted to remove non-existent texture ID: {}", id);
-    }
-
-    /// --- Audio Implementation ---
-    void AssetManager::loadSound(const std::string& id, const std::string& filename) 
-    {
-        loadAudio(id, filename, AudioType::Effect);
-    }
-
-    void AssetManager::loadMusic(const std::string& id, const std::string& filename) 
-    {
-        loadAudio(id, filename, AudioType::Music);
-    }
-
-    void AssetManager::loadAudio(const std::string &id, const std::string &filename, AudioType type)
-    {
-        std::filesystem::path path = resolvePath(filename);
-        std::string cacheKey = path.string();
-
-        if (searchLibrary(m_audio, m_audioCache, cacheKey, id)) return;
-
-        try {
-             if (!std::filesystem::exists(path)) throw std::runtime_error("File not found");
-
-            ma_sound_group* group = (type == AudioType::Music) ? AudioSystem::GetMusicGroup() : AudioSystem::GetSFXGroup();
-            auto res = CreateRef<Audio>(AudioSystem::GetEngine(), group, path, type);
-            
-            m_audio[id] = res;
-            m_audioCache[cacheKey] = res;
-            PGN_CORE_INFO("Audio Loaded: {}", cacheKey);
-        }
-        catch (const std::exception& e) {
-            PGN_CORE_ERROR("ASSET ERROR: Failed to load audio '{}': {}", id, e.what());
-        }
-    }
-
-    Ref<Audio> AssetManager::getAudio(const std::string &id) 
-    {
-        auto it = m_audio.find(id);
-        if (it == m_audio.end())
-        {
-            PGN_CORE_ERROR("ASSET ERROR: Audio ID {} not found!", id);
-            return nullptr;
-        }
-        return it->second.lock();
-    }
-
-    void AssetManager::removeAudio(const std::string &id)
-    {
-        if (m_audio.erase(id) == 0) 
-            PGN_CORE_WARN("Asset Warning: Attempted to remove non-existent texture ID: {}", id);
+        m_assets.clear();
+        loadDefaults();
+        PGN_CORE_INFO("AssetManager: All assets cleared.");
     }
 }

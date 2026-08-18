@@ -15,18 +15,18 @@ namespace pgn
 
         ImGui::Begin("Performance Overlay", nullptr, window_flags);
         ImGui::Text("Uptime: %02d:%02d.%02d", upTime.minutes,upTime.seconds, upTime.millis);
-        ImGui::Text("FPS: %.2f", App().GetFPS());
-        ImGui::Text("Frame Time: %.3f ms", 1000.0f / App().GetFPS());
+        ImGui::Text("FPS: %.2f", GetFPS());
+        ImGui::Text("Frame Time: %.3f ms", 1000.0f / GetFPS());
         
         ImGui::Separator();
         
         // --- Asset Manager Stats ---
         if (ImGui::CollapsingHeader("Assets", ImGuiTreeNodeFlags_DefaultOpen))
         {   
-            auto& am = Application::Get().GetAssetManager();
-            ImGui::BulletText("Textures: %zu", am.GetTextureCount());
-            ImGui::BulletText("Fonts:    %zu", am.GetFontCount());
-            ImGui::BulletText("Audio:    %zu", am.GetAudioCount());
+            //auto& am = Application::Get().GetAssetManager();
+            //ImGui::BulletText("Textures: %zu", am.GetTextureCount());
+            //ImGui::BulletText("Fonts:    %zu", am.GetFontCount());
+            //ImGui::BulletText("Audio:    %zu", am.GetAudioCount());
         }
 
         // --- Renderer Stats ---
@@ -38,7 +38,7 @@ namespace pgn
         //Window
         if (ImGui::CollapsingHeader("Window", ImGuiTreeNodeFlags_DefaultOpen))
         {   
-            ImGui::BulletText("Window Dimensions: %.2f x %.2f", App().GetWindow().GetWindowSize().x, App().GetWindow().GetWindowSize().y);
+            ImGui::BulletText("Window Dimensions: %.2f x %.2f", GetWindow().GetWindowSize().x, GetWindow().GetWindowSize().y);
         }
 
         ImGui::End();

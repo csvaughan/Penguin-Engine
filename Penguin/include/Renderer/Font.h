@@ -1,10 +1,7 @@
 #pragma once
-#include "Memory/Ref.h"
 #include "Math/Rect.h"
 #include "Math/Vector.h"
-#include "Asset/Texture.h" // 👈 Holds Ref<Texture> definition
-
-struct SDL_Renderer;
+#include "Renderer/Texture.h"
 
 namespace pgn
 {
@@ -15,7 +12,7 @@ namespace pgn
         Vector2 bearing;
     };
 
-    class Font : public RefCounted
+    class Font : public IAsset
     {
     public:
         Font(SDL_Renderer* renderer, const std::string& path, float ptsize);

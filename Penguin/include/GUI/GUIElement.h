@@ -2,7 +2,6 @@
 #include "Math/Transform.h"
 #include "Math/Rect.h"
 #include "Core/Timestep.h"
-#include "Core/AppContext.h"
 #include "Memory/Ref.h"
 #include "UICanvas.h"
 

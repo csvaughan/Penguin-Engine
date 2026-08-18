@@ -5,11 +5,11 @@
 void GameState::OnEnter()
 {
     PGN_INFO("GameState created.");
-    App().LoadTexture("WD", "textures/warrior/Down/WarriorDownIdle.png");
-    App().LoadSound("test","audio/lazer-gun.mp3");
-    App().LoadTexture("coin", "textures/coin/coin_heads.png");
-    App().LoadTexture("coin_flip", "textures/coin/coinflip.png");
-    App().LoadTexture("button", "textures/GUI/png/Button/Rect/Default.png");
+    Assets().load<pgn::Texture>("WD", "textures/warrior/Down/WarriorDownIdle.png");
+    Assets().load<pgn::SoundEffect>("test","audio/lazer-gun.mp3");
+    Assets().load<pgn::Texture>("coin", "textures/coin/coin_heads.png");
+    Assets().load<pgn::Texture>("coin_flip", "textures/coin/coinflip.png");
+    Assets().load<pgn::Texture>("button", "textures/GUI/png/Button/Rect/Default.png");
 
     BindEvent<pgn::KeyPressedEvent>(this, &GameState::SwitchLayer);
     //pgn::Input::LoadConfig("Input.cfg");

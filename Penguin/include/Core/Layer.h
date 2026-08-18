@@ -7,7 +7,7 @@ namespace pgn
     class State;
     class Renderer;
 
-    class Layer : private ISystem, public RefCounted
+    class Layer : private BaseSystem, public RefCounted
     {
     public:
         Layer(const std::string& name, bool enabled = false);
@@ -23,11 +23,17 @@ namespace pgn
         virtual void OnEnter() override {}
         virtual void OnExit() override {}
 
-        using ISystem::GetName;
-        using ISystem::App;
-        using ISystem::OnAppQuit;
-        using ISystem::BindEvent;
-        using ISystem::Subscribe;
+        using BaseSystem::GetName;
+        using BaseSystem::OnAppQuit;
+        using BaseSystem::BindEvent;
+        using BaseSystem::Subscribe;
+
+        using BaseSystem::GetFramebufferSize;    
+        using BaseSystem::GetWindow;            
+        using BaseSystem::GetTime;                          
+        using BaseSystem::GetFPS;                          
+        using BaseSystem::Assets;
+        using BaseSystem::RaiseEvent;
 
         template<typename TState, typename... Args>
         requires(std::is_base_of_v<State, TState>)

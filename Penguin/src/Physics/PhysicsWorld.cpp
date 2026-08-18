@@ -58,7 +58,7 @@ namespace pgn
     }
 
     //Class Functions
-    PhysicsWorld::PhysicsWorld(Vector2 gravity) : ISystem("PhysicsWorld"), m_gravity(gravity)
+    PhysicsWorld::PhysicsWorld(Vector2 gravity) : BaseSystem("PhysicsWorld"), m_gravity(gravity)
     {
         b2WorldDef worldDef = b2DefaultWorldDef();
         worldDef.gravity = {gravity.x, gravity.y};
@@ -366,7 +366,7 @@ namespace pgn
             }
 
             TEvent contactEvent(colA, colB, isBeginPhase);
-            App().RaiseEvent(contactEvent);
+            RaiseEvent(contactEvent);
         });
     }
 
@@ -374,7 +374,7 @@ namespace pgn
     {
         ExecuteWithColliders(shapeA, shapeB, [&](IPhysicsCollider* colA, IPhysicsCollider* colB) {
             ColliderHitEvent hitEvent(colA, colB, { point.x, point.y }, { normal.x, normal.y }, speed);
-            App().RaiseEvent(hitEvent);
+            RaiseEvent(hitEvent);
         });
     }
 
@@ -440,7 +440,7 @@ namespace pgn
             if (bodyWrapper)
             {
                 PhysicsBodyMoveEvent moveEvent(bodyWrapper, { event.transform.p.x, event.transform.p.y }, b2Rot_GetAngle(event.transform.q));
-                App().RaiseEvent(moveEvent);
+                RaiseEvent(moveEvent);
             }
         }
     }

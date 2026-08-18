@@ -1,10 +1,6 @@
 #pragma once
-#include "Memory/Ref.h"
+#include "Audio.h"
 #include "pgpch.h"
-
-struct ma_engine;
-struct ma_sound; 
-typedef struct ma_sound ma_sound_group;
 
 namespace pgn {
 
@@ -18,7 +14,7 @@ namespace pgn {
         static void Init();
         static void Shutdown();
 
-        // Listener (The "Ears")
+        // Listener
         static void OnUpdate(Vector2& listenerPosition);
 
         static void SetMasterVolume(float volume);
@@ -38,7 +34,7 @@ namespace pgn {
         static ma_sound_group* GetSFXGroup();
         static ma_sound_group* GetMusicGroup();
 
-        friend class AssetManager;
-        friend class Application;
+        friend class SoundEffectImporter;
+        friend class MusicImporter;
     };
 }

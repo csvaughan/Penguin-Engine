@@ -23,9 +23,9 @@ void AreaSystem::LoadLevelMap(const std::string& tmxPath)
     {
         std::string path = ts.getImagePath();
         // Load into AssetManager if not already there
-        App().LoadTexture(path, path);
+        //App().LoadTexture(path, path);
         // Grab the shared pointer to inject into the map
-        texturePool[path] = App().GetTexture(path);
+        //texturePool[path] = App().GetTexture(path);
     }
 
     // 2. Initialize the Map Data

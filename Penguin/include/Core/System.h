@@ -1,21 +1,36 @@
 #pragma once
-#include "AppContext.h"
+#include "pgpch.h"
+#include "Events/EventBus.h"
+#include "Events/EventToken.h"
+#include "Core/Timestep.h"
+#include "Memory/Scope.h"
 
 namespace pgn {
 
     class AppQuitEvent;
     class Renderer;
 
-    class ISystem
+    class BaseSystem 
     {
     public:
-        ISystem(const std::string& name) : m_name(name) {}
-        virtual ~ISystem() {m_tokens.clear(); } 
-
-    protected:
+        BaseSystem (const std::string& name) : m_name(name), m_app(Application::Get()), m_assets(m_app.GetAssetManager()), m_window(*m_app.Get().GetWindow()) {}
+        virtual ~BaseSystem () {m_tokens.clear(); } 
 
         const std::string& GetName() {return m_name; }
 
+    protected:
+
+        //Application getters
+        Vector2 GetFramebufferSize() const          { return m_app.GetFramebufferSize(); }
+        Window& GetWindow() const                   { return m_window; }
+        double GetTime()                            { return m_app.GetTime(); }
+        float GetFPS()                              { return m_app.GetFPS(); }
+        AssetManager& Assets()                      { return m_assets; }
+
+        //Events Might add back in later
+        void RaiseEvent(Event& event) { m_app.RaiseEvent(event); }
+
+        //Game Loop
         virtual void OnEnter() {}
         virtual void OnExit() {}
         virtual void OnUpdate(Timestep ts) {}
@@ -31,7 +46,6 @@ namespace pgn {
 
         virtual void OnAppQuit(AppQuitEvent& e){}
 
-        AppContext& App() {return m_context; }
 
          /**
          * Global Events (broadcasts using the Event Bus).
@@ -63,31 +77,13 @@ namespace pgn {
         }
 
     private:
-        AppContext m_context;
+
         std::string m_name;
         std::unordered_map<EventType, std::function<bool(Event&)>> m_handlers;
         std::vector<Scope<EventToken>> m_tokens;
-    };
 
-    // Used as a base for client-side systems
-    class BaseSystem : private ISystem 
-    {
-    public:
-        BaseSystem(const std::string& name) : ISystem(name) {}
-        virtual ~BaseSystem() = default;
-
-        using ISystem::GetName;
-        
-    protected:
-
-        using ISystem::App;
-        using ISystem::OnUpdate;
-        using ISystem::OnRender;
-        using ISystem::OnEvent;
-        using ISystem::OnEnter;
-        using ISystem::OnExit;
-        using ISystem::OnAppQuit;
-        using ISystem::BindEvent;
-        using ISystem::Subscribe;
+        Application& m_app;
+        AssetManager& m_assets;
+        Window& m_window;
     };
 }

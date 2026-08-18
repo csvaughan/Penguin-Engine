@@ -3,7 +3,7 @@
 #include "Core/Window.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Camera.h"
-#include "Asset/Texture.h"
+#include "Texture.h"
 #include "Math/Matrix4.h"
 #include "Renderer/Color.h"
 #include "Math/Rect.h"

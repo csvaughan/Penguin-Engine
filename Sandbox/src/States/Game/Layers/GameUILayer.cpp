@@ -6,11 +6,11 @@ GameUILayer::~GameUILayer() {}
 
 void GameUILayer::OnEnter()
 {
-    auto canvas = m_uiManager.CreateCanvas(App().GetWindow().GetWindowSize());
+    auto canvas = m_uiManager.CreateCanvas(GetWindow().GetWindowSize());
 
     auto btn = canvas->CreateElement<pgn::GUI::Button>(pgn::Vector2{0, 0}, pgn::Vector2{280, 80});
-    btn->SetTexture(App().GetTexture("button"));
-    btn->SetText("Start Game", App().GetFont("default_font"));
+    btn->SetTexture(Assets().get<pgn::Texture>("button"));
+    btn->SetText("Start Game", Assets().get<pgn::Font>("default_font"));
     
     auto volumeSlider = canvas->CreateElement<pgn::GUI::Slider>(pgn::Vector2{150, 300}, pgn::Vector2{20, 300}, pgn::GUI::UILayoutDirection::Vertical,"VolSlider");
     volumeSlider->SetRange(0.0f, 100.0f);

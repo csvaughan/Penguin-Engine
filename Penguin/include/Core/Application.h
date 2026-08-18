@@ -76,6 +76,6 @@ namespace pgn
     	int m_FrameCount = 0;
 		
 		friend class State;
-		friend class AppContext;
+		friend class BaseSystem;
 	};
 }

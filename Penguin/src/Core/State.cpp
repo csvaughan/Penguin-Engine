@@ -2,10 +2,11 @@
 #include "Core/State.h"
 #include "Core/Layer.h"
 #include "Events/EngineEvents.h"
+#include "Log/Log.h"
 
 namespace pgn
 {
-    State::State(const std::string& name) : ISystem(name) 
+    State::State(const std::string& name) : BaseSystem(name) 
     {
         Subscribe<LayerPushEvent>([this](LayerPushEvent& e) {this->OnLayerPush(e);}); 
         Subscribe<LayerPopEvent>([this](LayerPopEvent& e) {this->OnLayerPop(e);});
@@ -21,7 +22,7 @@ namespace pgn
     {
         m_layers.handleEvent(e); 
         if (!e.Handled) 
-            ISystem::OnEvent(e);
+            BaseSystem::OnEvent(e);
     }
 
     void State::OnUpdate(Timestep dt) 
@@ -33,6 +34,11 @@ namespace pgn
     void State::OnRender(float alpha, Renderer& renderer) 
     { 
         m_layers.render(alpha, renderer);
+    }
+
+    void State::throwWarning(const std::string &type, const std::string &name)
+    {
+        PGN_CORE_WARN("Warning: {} creation failed. {}: {} already exists.", type, type, name);
     }
 
     void State::OnLayerPop(LayerPopEvent& e){PGN_CORE_INFO("Layer: {} popped from stack.", e.GetLayer()->GetName());}

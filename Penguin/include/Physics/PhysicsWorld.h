@@ -15,7 +15,7 @@ namespace pgn
     class PrismaticJoint;
     enum class PhysicsBodyType;
 
-    class PhysicsWorld : public ISystem
+    class PhysicsWorld : public BaseSystem
     {
     public:
         PhysicsWorld(Vector2 gravity);
@@ -48,8 +48,8 @@ namespace pgn
         int32_t GetSubStepCount() const { return m_subStepCount; }
         
     private:
-        using ISystem::OnEnter;
-        using ISystem::OnExit; 
+        using BaseSystem::OnEnter;
+        using BaseSystem::OnExit; 
 
         template<typename TEvent>
         void ProcessContact(b2ShapeId& shapeA, b2ShapeId& shapeB, bool isBeginPhase);

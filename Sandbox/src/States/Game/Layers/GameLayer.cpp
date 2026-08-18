@@ -1,13 +1,13 @@
 #include "GameLayer.h"
 
 GameLayer::GameLayer(const std::string name) 
-    : pgn::Layer(name), m_camera(App().GetWindow().GetWindowSize()), m_areaSystem(m_camera), m_world({0.0f, 0.0f}) {} //
+    : pgn::Layer(name), m_camera(GetWindow().GetWindowSize()), m_areaSystem(m_camera), m_world({0.0f, 0.0f}) {} 
 
-GameLayer::~GameLayer(){} //
+GameLayer::~GameLayer(){}
 
 void GameLayer::OnEnter()
 {     
-    text.setFont(App().GetFont("default_font")); 
+    text.setFont(Assets().get<pgn::Font>("default_font")); 
     text.setString("Hello World"); 
     text.setPosition({500,200}); 
     text.setColor(pgn::Color::Cyan); 
@@ -29,8 +29,8 @@ void GameLayer::OnEnter()
     circle3.setPosition({400,400}); 
     circle3.setZIndex(3);
 
-    float winWidth  = App().GetWindow().GetWindowWidth(); 
-    float winHeight = App().GetWindow().GetWindowHeight(); 
+    float winWidth  = GetWindow().GetWindowWidth(); 
+    float winHeight = GetWindow().GetWindowHeight(); 
 
     // ==========================================
     // 1. CREATE STATIC WORLD BOUNDARY WALLS
@@ -75,7 +75,6 @@ void GameLayer::OnEnter()
 
     m_shapes.push_back({ &rect2, r2Body });
 
-
     // Circle 1
     circle.setPosition({800, 400}); 
     circle.setColor(pgn::Color::Green); 
@@ -109,7 +108,7 @@ void GameLayer::OnEnter()
     sprite.setPosition({400, 200}); 
     sprite.setScale({2,2}); 
     sprite.setZIndex(4); 
-    anim.play(pgn::Animation::CreateFromSheet(App().GetTexture("WD"), 48, 48, 0.3f)); 
+    anim.play(pgn::Animation::CreateFromSheet(Assets().get<pgn::Texture>("WD"), 48, 48, 0.3f)); 
 
     line.setColor(pgn::Color::FromHex("#6c1dc7")); 
     line.setPoint1({200,300}); 
@@ -130,8 +129,8 @@ void GameLayer::OnUpdate(pgn::Timestep ts)
     // 1. Step the physics simulation (this moves the bodies based on their velocities)
     m_world.OnUpdate(ts); 
 
-    float winWidth  = App().GetWindow().GetWindowWidth(); 
-    float winHeight = App().GetWindow().GetWindowHeight(); 
+    float winWidth  = GetWindow().GetWindowWidth(); 
+    float winHeight = GetWindow().GetWindowHeight(); 
 
     m_camera.setViewportSize(winWidth, winHeight); 
 
@@ -161,7 +160,7 @@ void GameLayer::OnUpdate(pgn::Timestep ts)
     }
     if(pgn::Input::GetKeyDown(pgn::KeyCode::P)) 
     {
-        pgn::AudioSystem::Play(App().GetAudio("test")); 
+        pgn::AudioSystem::Play(Assets().get<pgn::SoundEffect>("test")); 
     }
 
     if(pgn::Input::GetKeyDown(pgn::KeyCode::MouseButtonLeft)) 

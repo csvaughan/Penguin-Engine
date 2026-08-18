@@ -8,7 +8,7 @@ namespace pgn
     class LayerPushEvent;
     class LayerPopEvent;
 
-    class State : private ISystem
+    class State : private BaseSystem
     {
     public:
         State(const std::string& name);
@@ -34,7 +34,7 @@ namespace pgn
             }
             else
             {
-                PGN_WARN("Warning: Layer creation failed. Layer: {} already exists.", name);
+                throwWarning("Layer", name);
                 return StaticRefCast<TLayer>(getLayer(name));
             }
         }
@@ -51,7 +51,7 @@ namespace pgn
             }
             else
             {
-                PGN_WARN("Warning: Overlay creation failed. Overlay: {} already exists.", name);
+                throwWarning("Overlay", name);
                 return StaticRefCast<TLayer>(getLayer(name));
             }
         }
@@ -65,17 +65,25 @@ namespace pgn
         virtual void OnEnter() override {}
         virtual void OnExit() override {}
 
-        using ISystem::GetName;
-        using ISystem::App;
-        using ISystem::OnAppQuit;
-        using ISystem::BindEvent;
-        using ISystem::Subscribe;
+        using BaseSystem::GetName;
+        using BaseSystem::OnAppQuit;
+        using BaseSystem::BindEvent;
+        using BaseSystem::Subscribe;
+
+        using BaseSystem::GetFramebufferSize;    
+        using BaseSystem::GetWindow;            
+        using BaseSystem::GetTime;                          
+        using BaseSystem::GetFPS;                          
+        using BaseSystem::Assets;
+        using BaseSystem::RaiseEvent;
         
     private:
         
         void OnEvent(Event& e) final override;
         void OnUpdate(Timestep dt) final override;
         void OnRender(float alpha, Renderer& renderer) final override;
+
+        void throwWarning(const std::string& type, const std::string& name);
 
         //Private helpers
         Ref<Layer> getLayer(const std::string& name);

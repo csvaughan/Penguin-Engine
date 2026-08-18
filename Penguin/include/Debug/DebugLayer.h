@@ -13,7 +13,7 @@ namespace pgn
 
             void OnImGuiUpdate(Timestep ts) override
             {   
-                double time = App().GetTime();
+                double time = GetTime();
                 double secondsTotal = 0;
                 double fractionalPart = std::modf(time, &secondsTotal);
                 upTime.minutes = static_cast<int>(secondsTotal) / 60;

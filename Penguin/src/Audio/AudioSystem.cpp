@@ -1,7 +1,9 @@
 #include "Audio/AudioSystem.h"
-#include "Asset/Audio.h" 
+#include "Audio/Audio.h" 
 #include "Math/Vector.h"
 #include "Math/MathUtils.h"
+#include "Log/Log.h"
+#include <miniaudio/miniaudio.h>
 
 namespace pgn
 {
@@ -68,8 +70,7 @@ namespace pgn
     void AudioSystem::Play(Ref<Audio> sound, float volume, float pitch, bool loop) 
     {
         if (!sound || !s_Data) return;
-
-        ma_sound* internal = sound->GetInternal();
+        ma_sound* internal = sound->m_internalAudio;
         
         // Ensure this sound is treated as "Global" (2D/UI)
         ma_sound_set_spatialization_enabled(internal, MA_FALSE);
@@ -80,19 +81,16 @@ namespace pgn
         
         // Rewind in case we are re-using a sound
         ma_sound_seek_to_pcm_frame(internal, 0);
-        
         ma_sound_start(internal);
     }
 
     void AudioSystem::PlayAtLocation(Ref<Audio> sound, float x, float y) 
     {
         if (!sound || !s_Data) return;
-        ma_sound* internal = sound->GetInternal();
+        ma_sound* internal = sound->m_internalAudio;
         
         // Enable 3D Spatialization
         ma_sound_set_spatialization_enabled(internal, MA_TRUE);
-        
-        // Miniaudio uses a default attenuation model, but you can tweak it in Init if needed
         ma_sound_set_position(internal, x, y, 0.0f);
         
         // Rewind and Play
@@ -100,7 +98,7 @@ namespace pgn
         ma_sound_start(internal);
     }
 
-    void AudioSystem::Stop(Ref<Audio> sound) { if (sound) ma_sound_stop(sound->GetInternal()); }
+    void AudioSystem::Stop(Ref<Audio> sound) { if (sound) ma_sound_stop(sound->m_internalAudio); }
 
     void AudioSystem::SetMasterVolume(float volume) 
     {
